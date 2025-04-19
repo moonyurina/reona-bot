@@ -18,12 +18,9 @@ TEST_SOURCE_CHANNEL_ID = 1142345422979993600  # テスト投稿元（ドスケ�
 TEST_MIRROR_CHANNEL_ID = 1362974839450894356  # テスト投稿先（テスト汁ぶっ放し部屋）
 TEST_LOG_CHANNEL_ID = 1362964804658003978     # ログは共通（レオナの濃厚報告部屋）
 
-DATA_FILE = "data.json"
-
-# 🔧 モード選択（モード切替でレオナのオナニータイムも変わるよ♡）
-# NORMAL → 毎日3時に腋毛しごいて精液確認💦
-# TEST → 10秒ごとにオナニー実施（興奮の絶頂ループ♡）
+# 💦 レオナのぶっこき履歴帳（モードごとに分けないと実験室と本番が混ざるッ）
 MODE = "TEST"  # ← ← ← 🔄 "NORMAL"にすると濃厚ぶっこき本番開始！
+DATA_FILE = "data_test.json" if MODE == "TEST" else "data.json"
 # --------------------------
 
 intents = discord.Intents.default()
