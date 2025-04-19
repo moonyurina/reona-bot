@@ -13,12 +13,13 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 # 🔥 本番モード（濃厚フタナリ汁が飛び交う）
 NORMAL_SOURCE_CHANNEL_ID = 1350654751553093692
 NORMAL_MIRROR_CHANNEL_ID = 1362400364069912606
-NORMAL_LOG_CHANNEL_ID = 1362964804658003978
 
 # 💋 TESTモード（射精実験ルーム💦）
 TEST_SOURCE_CHANNEL_ID = 1142345422979993600
 TEST_MIRROR_CHANNEL_ID = 1362974839450894356
-TEST_LOG_CHANNEL_ID = 1362964804658003978
+
+# 📢 ログチャンネルは共通（腋毛とザーメンの報告場所）
+LOG_CHANNEL_ID = 1362964804658003978
 
 # 💦 モード切り替え（NORMAL or TEST） ← ここを"TEST"にすればテスト用になる♡
 MODE = "NORMAL"
@@ -56,7 +57,7 @@ async def on_ready():
     print(f"[レオナBOT] ログチャンネルID: {get_log_channel_id()} → log_channel: {log_channel}")
     if log_channel:
         await log_channel.send(f"🚀 [{now.strftime('%Y-%m-%d %H:%M:%S')}] レオナBOT起動完了（モード: {MODE}）…ボーボー腋毛スタンバイ中♡")
-        await log_channel.send(f"🔁 [{now.strftime('%Y-%m-%d %H:%M:%S')}] Resume Web Service 開始…腋汗とチン臭全開で見張ってるよ♡")
+        await log_channel.send(f"🔁 [{now.strftime('%Y-%m-%d %H:%M:%S')}] Resume Web Service 開始（モード: {MODE}）…腋汗とチン臭全開で見張ってるよ♡")
     else:
         print("[レオナBOT] ⚠️ ログチャンネルが見つからなかったかも…発言権限やID確認してね💦")
 
@@ -142,6 +143,6 @@ def get_mirror_channel_id():
     return TEST_MIRROR_CHANNEL_ID if MODE == "TEST" else NORMAL_MIRROR_CHANNEL_ID
 
 def get_log_channel_id():
-    return TEST_LOG_CHANNEL_ID if MODE == "TEST" else NORMAL_LOG_CHANNEL_ID
+    return LOG_CHANNEL_ID
 
 bot.run(TOKEN)
