@@ -142,6 +142,6 @@ def get_mirror_channel_id():
     return TEST_MIRROR_CHANNEL_ID if MODE == "TEST" else NORMAL_MIRROR_CHANNEL_ID
 
 def get_log_channel_id():
-    return NORMAL_LOG_CHANNEL_ID
+    return TEST_LOG_CHANNEL_ID if MODE == "TEST" else NORMAL_LOG_CHANNEL_ID
 
 bot.run(TOKEN)
