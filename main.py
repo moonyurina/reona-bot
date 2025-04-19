@@ -48,7 +48,7 @@ def save_data(data):
 @bot.event
 async def on_ready():
     now = dt.utcnow() + timedelta(hours=9)
-    log_channel = bot.get_channel(get_log_channel_id())
+    log_channel = await bot.fetch_channel(get_log_channel_id())
     print(f"[レオナBOT] 起動完了…ちんぽミルク満タンで待機中…💦")
     if log_channel:
         await log_channel.send(f"🚀 [{now.strftime('%Y-%m-%d %H:%M:%S')}] レオナBOT起動完了（モード: {MODE}）…ボーボー腋毛も全開でスタンバイ♡")
@@ -73,9 +73,9 @@ async def check_once():
     deleted_count = 0
     new_mirrors = 0
 
-    source_channel = bot.get_channel(get_source_channel_id())
-    mirror_channel = bot.get_channel(get_mirror_channel_id())
-    log_channel = bot.get_channel(get_log_channel_id())
+    source_channel = await bot.fetch_channel(get_source_channel_id())
+    mirror_channel = await bot.fetch_channel(get_mirror_channel_id())
+    log_channel = await bot.fetch_channel(get_log_channel_id())
 
     # 💦 最近の投稿を覗き見して、未処理のぶっこきがあれば即ミラー♡
     if source_channel:
