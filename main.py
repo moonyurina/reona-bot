@@ -52,14 +52,19 @@ async def on_ready():
     startup_time = dt.utcnow()
 
     now = startup_time + timedelta(hours=9)
-    log_channel = await bot.fetch_channel(get_log_channel_id())
-    print(f"[レオナBOT] 起動完了（モード: {MODE}）")
-    print(f"[レオナBOT] ログチャンネルID: {get_log_channel_id()} → log_channel: {log_channel}")
-    if log_channel:
-        await log_channel.send(f"🚀 [{now.strftime('%Y-%m-%d %H:%M:%S')}] レオナBOT起動完了（モード: {MODE}）…ボーボー腋毛スタンバイ中♡")
-        await log_channel.send(f"🔁 [{now.strftime('%Y-%m-%d %H:%M:%S')}] Resume Web Service 開始（モード: {MODE}）…腋汗とチン臭全開で見張ってるよ♡")
-    else:
-        print("[レオナBOT] ⚠️ ログチャンネルが見つからなかったかも…発言権限やID確認してね💦")
+    print(f"[レオナBOT] 起動処理開始！現在のモードは {MODE}")
+    print(f"[レオナBOT] startup_time（UTC）→ {startup_time.isoformat()}")
+    log_channel = None
+    try:
+        log_channel = await bot.fetch_channel(get_log_channel_id())
+        print(f"[レオナBOT] ログチャンネル取得成功 → ID: {get_log_channel_id()} | オブジェクト: {log_channel}")
+        if log_channel:
+            await log_channel.send(f"🚀 [{now.strftime('%Y-%m-%d %H:%M:%S')}] レオナBOT起動完了（モード: {MODE}）…ボーボー腋毛スタンバイ中♡")
+            await log_channel.send(f"🔁 [{now.strftime('%Y-%m-%d %H:%M:%S')}] Resume Web Service 開始（モード: {MODE}）…腋汗とチン臭全開で見張ってるよ♡")
+        else:
+            print("[レオナBOT] ⚠️ ログチャンネルがNoneやで…IDミスかBOTの権限不足かも！")
+    except Exception as e:
+        print(f"[レオナBOT] ログチャンネル取得・送信時のエラー: {e}")
 
     if MODE == "TEST":
         check_loop.change_interval(seconds=10)
@@ -129,12 +134,15 @@ async def check_once():
         save_data(new_data)
 
     if log_channel:
-        if new_mirrors == 0 and deleted_count == 0:
-            await log_channel.send(f"📭 [{now_jst.strftime('%Y-%m-%d %H:%M:%S')}] （モード: {MODE}）今日は濃いのゼロ…腋毛こすっただけだったわ…💦")
-        elif new_mirrors > 0 and deleted_count == 0:
-            await log_channel.send(f"📥 [{now_jst.strftime('%Y-%m-%d %H:%M:%S')}] （モード: {MODE}）{new_mirrors}件ミラー完了♡ レオナのデカマラで保存しておいたわよ♡")
-        elif deleted_count > 0:
-            await log_channel.send(f"🧻 [{now_jst.strftime('%Y-%m-%d %H:%M:%S')}] （モード: {MODE}）{deleted_count}件分、濃厚ザーメン全部お掃除完了♡ 次のオナペ、準備しときな♡")
+        try:
+            if new_mirrors == 0 and deleted_count == 0:
+                await log_channel.send(f"📭 [{now_jst.strftime('%Y-%m-%d %H:%M:%S')}] （モード: {MODE}）今日は濃いのゼロ…腋毛こすっただけだったわ…💦")
+            elif new_mirrors > 0 and deleted_count == 0:
+                await log_channel.send(f"📥 [{now_jst.strftime('%Y-%m-%d %H:%M:%S')}] （モード: {MODE}）{new_mirrors}件ミラー完了♡ レオナのデカマラで保存しておいたわよ♡")
+            elif deleted_count > 0:
+                await log_channel.send(f"🧻 [{now_jst.strftime('%Y-%m-%d %H:%M:%S')}] （モード: {MODE}）{deleted_count}件分、濃厚ザーメン全部お掃除完了♡ 次のオナペ、準備しときな♡")
+        except Exception as e:
+            print(f"[レオナBOT] ログ出力エラー: {e}")
 
 def get_source_channel_id():
     return TEST_SOURCE_CHANNEL_ID if MODE == "TEST" else NORMAL_SOURCE_CHANNEL_ID
