@@ -28,21 +28,14 @@ intents.messages = True
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-FIRST_RUN_FLAG_FILE = ".first_run_flag"
-
-def is_first_run():
-    return MODE == "NORMAL" and not os.path.exists(FIRST_RUN_FLAG_FILE)
-
-def mark_first_run_complete():
-    with open(FIRST_RUN_FLAG_FILE, "w") as f:
-        f.write("done")
-
+# 💦 データロード関数（レオナの記録ノート♡）
 def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r") as f:
             return json.load(f)
     return {}
 
+# 💦 データ保存関数（ぶっこいた履歴をしっかり保存♡）
 def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f)
@@ -79,15 +72,6 @@ async def check_once():
     source_channel = await bot.fetch_channel(get_source_channel_id())
     mirror_channel = await bot.fetch_channel(get_mirror_channel_id())
     log_channel = await bot.fetch_channel(get_log_channel_id())
-
-    # 💦 初回起動時は既存のちんぽ投稿を記録するだけでぶっこまない！
-    if is_first_run():
-        messages = [message async for message in source_channel.history(limit=10)]
-        data = {str(msg.id): {"mirror_id": None, "timestamp": None, "expire_date": None, "deleted": False} for msg in messages if not msg.author.bot}
-        save_data(data)
-        mark_first_run_complete()
-        print("[レオナBOT] 初回スキャン完了：既存投稿を記録のみ♡ ぶっこくのは次回から♡")
-        return
 
     # 💋 新規で投稿された腋汗ムンムンの変態画像をミラー先にぶっこむ♡
     messages = [msg async for msg in source_channel.history(limit=10)]
