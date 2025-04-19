@@ -76,7 +76,7 @@ async def check_once():
 
     # 💦 最近の投稿を覗き見して、未処理のぶっこきがあれば即ミラー♡
     if source_channel:
-        messages = await source_channel.history(limit=10).flatten()
+        messages = [message async for message in source_channel.history(limit=10)]
         for message in messages:
             if not message.author.bot and str(message.id) not in data:
                 expire_date = (now + timedelta(days=30)).strftime('%Y-%m-%d %H:%M')
@@ -135,3 +135,4 @@ def get_log_channel_id():
     return NORMAL_LOG_CHANNEL_ID
 
 bot.run(TOKEN)
+
