@@ -54,6 +54,9 @@ async def on_ready():
     now = startup_time + timedelta(hours=9)
     print(f"[レオナBOT] 起動処理開始！現在のモードは {MODE}")
     print(f"[レオナBOT] startup_time（UTC）→ {startup_time.isoformat()}")
+    print(f"[レオナBOT] BOTユーザー: {bot.user} | ID: {bot.user.id}")
+    print(f"[レオナBOT] 所属ギルド一覧: {[g.name for g in bot.guilds]}")
+
     log_channel = None
     try:
         log_channel = await bot.fetch_channel(get_log_channel_id())
@@ -73,7 +76,9 @@ async def on_ready():
 @tasks.loop(minutes=1)
 async def check_loop():
     now = dt.utcnow() + timedelta(hours=9)
+    print(f"[レオナBOT] check_loop 発火！（モード: {MODE} / 時刻: {now.strftime('%Y-%m-%d %H:%M:%S')}）")
     if MODE == "NORMAL" and now.hour != 3:
+        print("[レオナBOT] NORMALモードだけど3時じゃないからスキップするね💤")
         return
     await check_once()
 
@@ -148,9 +153,4 @@ def get_source_channel_id():
     return TEST_SOURCE_CHANNEL_ID if MODE == "TEST" else NORMAL_SOURCE_CHANNEL_ID
 
 def get_mirror_channel_id():
-    return TEST_MIRROR_CHANNEL_ID if MODE == "TEST" else NORMAL_MIRROR_CHANNEL_ID
-
-def get_log_channel_id():
-    return LOG_CHANNEL_ID
-
-bot.run(TOKEN)
+    return TEST_MIRROR_CHANNEL_ID if MODE
