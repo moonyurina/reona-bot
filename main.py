@@ -7,8 +7,9 @@ from datetime import datetime as dt, timedelta
 
 # ---------- 設定 ----------
 TOKEN = os.getenv("DISCORD_TOKEN")
-SOURCE_CHANNEL_ID = 1350654751553093692  # 投稿元チャンネルID
+SOURCE_CHANNEL_ID = 1142345422979993600  # 投稿元チャンネルID
 MIRROR_CHANNEL_ID = 1362400364069912606  # ミラー投稿先チャンネルID
+LOG_CHANNEL_ID = 1362964804658003978       # ✅ ログ用チャンネルID（仮）
 DATA_FILE = "data.json"
 # --------------------------
 
@@ -43,10 +44,12 @@ async def check_once():
     data = load_data()
     now = dt.utcnow() + timedelta(hours=9)  # JST時間に変換
     updated = False
+    deleted_count = 0
+    new_mirrors = 0
 
-    # ミラー元チャンネルの取得
     source_channel = bot.get_channel(SOURCE_CHANNEL_ID)
     mirror_channel = bot.get_channel(MIRROR_CHANNEL_ID)
+    log_channel = bot.get_channel(LOG_CHANNEL_ID)
 
     # 🔽 最新のメッセージ10件を取得して新規投稿をミラー
     if source_channel:
@@ -54,41 +57,45 @@ async def check_once():
         for message in messages:
             if not message.author.bot and str(message.id) not in data:
                 expire_date = (now + timedelta(days=30)).strftime('%Y-%m-%d %H:%M')
-                # 📝 投稿ミラー時のコメント
-                # 英語: This image will self-destruct on {expire_date}
-                # 日本語: この画像は {expire_date} に自動で消滅します
                 content = message.content + f"\n\n#Only30Days\n🗓️ This image will self-destruct on {expire_date}"
                 files = [await a.to_file() for a in message.attachments]
                 mirror = await mirror_channel.send(content, files=files)
-                # オリジナルメッセージIDをキーとして記録
                 data[str(message.id)] = {
                     "mirror_id": mirror.id,
                     "timestamp": dt.utcnow().isoformat(),
                     "expire_date": expire_date
                 }
                 updated = True
+                new_mirrors += 1
                 print(f"[レオナBOT] ミラー投稿完了: {mirror.id}")
 
-    # 🔽 30日経過したミラー投稿をチェックして画像削除＆コメント更新
+    # 🔽 30日経過したミラー投稿をチェック
     for original_id, info in list(data.items()):
         ts = dt.fromisoformat(info["timestamp"])
         if (now - ts).days >= 30:
             try:
                 msg = await mirror_channel.fetch_message(int(info["mirror_id"]))
                 original_content = msg.content.replace("#Only30Days", "").strip()
-                # 削除コメントを1種類に統一
-                # 英語: This image was deleted on {expire_date}
-                # 日本語: この画像は {expire_date} に削除されました
-                deletion_notice = f"\n\n🗑️ This image was deleted on {info['expire_date']}"
+                deletion_notice = f"\n\n🗑️ This image was deleted on {info['expire_date']}"  # ← 削除通知
                 await msg.edit(content=original_content + deletion_notice, attachments=[])
                 del data[original_id]
                 updated = True
+                deleted_count += 1
                 print(f"[レオナBOT] {info['mirror_id']} のちんぽ汁、ふき取ったぜ…💦")
             except Exception as e:
                 print(f"[レオナBOT] エラー発射: {e}")
 
     if updated:
         save_data(data)
+
+    # 🔔 ログ出力（レオナ風トーク）
+    if log_channel:
+        if new_mirrors == 0 and deleted_count == 0:
+            await log_channel.send("😤 レオナだよ…くっ、今日は追加も削除も無し…ムダに汗かいただけじゃん…💦")
+        elif new_mirrors > 0 and deleted_count == 0:
+            await log_channel.send(f"💪 フゥ…{new_mirrors}件ぶち込んだけど、まだ30日経ってないからそのまま放置だよ…見逃すなよぉ♡")
+        elif deleted_count > 0:
+            await log_channel.send(f"💦 {deleted_count}件分、しっかりふき取ったからな…次の濃い投稿、楽しみにしてるぜ♡")
 
 # 実行（RenderのScheduled Jobから起動想定）
 bot.run(TOKEN)
