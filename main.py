@@ -7,7 +7,7 @@ from datetime import datetime as dt, timedelta
 
 # ---------- 設定 ----------
 TOKEN = os.getenv("DISCORD_TOKEN")
-SOURCE_CHANNEL_ID = 1142345422979993600  # 投稿元チャンネルID
+SOURCE_CHANNEL_ID = 1350654751553093692  # 投稿元チャンネルID
 MIRROR_CHANNEL_ID = 1362400364069912606  # ミラー投稿先チャンネルID
 LOG_CHANNEL_ID = 1362964804658003978       # ✅ ログ用チャンネルID（仮）
 DATA_FILE = "data.json"
@@ -35,7 +35,13 @@ def save_data(data):
 # Bot起動時の処理
 @bot.event
 async def on_ready():
+    now = dt.utcnow() + timedelta(hours=9)
+    log_channel = bot.get_channel(LOG_CHANNEL_ID)
+    # ✅ 起動ログをコンソールとDiscord両方に表示
     print(f"[レオナBOT] 起動完了…ちんぽミルク満タンで待機中…💦")
+    if log_channel:
+        await log_channel.send(f"🚀 [{now.strftime('%Y-%m-%d %H:%M:%S')}] レオナBOT起動完了…ちんぽミルク満タンで待機中…💦")
+        await log_channel.send(f"🔁 [{now.strftime('%Y-%m-%d %H:%M:%S')}] Resume Web Service 開始したよ…濃いの、ぶち込む準備できてるからな♡")
     await check_once()  # 🔥 毎日3時にRenderのScheduled Jobから呼ばれる想定で1回だけ実行
     await bot.close()   # ✅ 実行後にBOTを終了（常駐しない）
 
@@ -91,11 +97,11 @@ async def check_once():
     # 🔔 ログ出力（レオナ風トーク）
     if log_channel:
         if new_mirrors == 0 and deleted_count == 0:
-            await log_channel.send("😤 レオナだよ…くっ、今日は追加も削除も無し…ムダに汗かいただけじゃん…💦")
+            await log_channel.send(f"📭 [{now.strftime('%Y-%m-%d %H:%M:%S')}] 😤 レオナだよ…くっ、今日は追加も削除も無し…ムダに汗かいただけじゃん…💦")
         elif new_mirrors > 0 and deleted_count == 0:
-            await log_channel.send(f"💪 フゥ…{new_mirrors}件ぶち込んだけど、まだ30日経ってないからそのまま放置だよ…見逃すなよぉ♡")
+            await log_channel.send(f"📥 [{now.strftime('%Y-%m-%d %H:%M:%S')}] 💪 フゥ…{new_mirrors}件ぶち込んだけど、まだ30日経ってないからそのまま放置だよ…見逃すなよぉ♡")
         elif deleted_count > 0:
-            await log_channel.send(f"💦 {deleted_count}件分、しっかりふき取ったからな…次の濃い投稿、楽しみにしてるぜ♡")
+            await log_channel.send(f"🧻 [{now.strftime('%Y-%m-%d %H:%M:%S')}] 💦 {deleted_count}件分、しっかりふき取ったからな…次の濃い投稿、楽しみにしてるぜ♡")
 
 # 実行（RenderのScheduled Jobから起動想定）
 bot.run(TOKEN)
