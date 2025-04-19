@@ -53,9 +53,13 @@ async def on_ready():
     now = startup_time + timedelta(hours=9)
     log_channel = await bot.fetch_channel(get_log_channel_id())
     print(f"[レオナBOT] 起動完了（モード: {MODE}）")
+    print(f"[レオナBOT] ログチャンネルID: {get_log_channel_id()} → log_channel: {log_channel}")
     if log_channel:
         await log_channel.send(f"🚀 [{now.strftime('%Y-%m-%d %H:%M:%S')}] レオナBOT起動完了（モード: {MODE}）…ボーボー腋毛スタンバイ中♡")
         await log_channel.send(f"🔁 [{now.strftime('%Y-%m-%d %H:%M:%S')}] Resume Web Service 開始…腋汗とチン臭全開で見張ってるよ♡")
+    else:
+        print("[レオナBOT] ⚠️ ログチャンネルが見つからなかったかも…発言権限やID確認してね💦")
+
     if MODE == "TEST":
         check_loop.change_interval(seconds=10)
     check_loop.start()
@@ -91,7 +95,7 @@ async def check_once():
             expire_date = (now_jst + timedelta(days=30)).strftime('%Y-%m-%d %H:%M')
             tag = "#Only10Sec" if MODE == "TEST" else "#Only30Days"
             content = msg.content + f"\n\n{tag}\n🗓️ This image will self-destruct on {expire_date}"
-            files = [await a.to_file() for a in message.attachments]
+            files = [await a.to_file() for a in msg.attachments]
             mirror = await mirror_channel.send(content, files=files)
             new_data[mid] = {
                 "mirror_id": mirror.id,
