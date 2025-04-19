@@ -20,8 +20,8 @@ TEST_SOURCE_CHANNEL_ID = 1142345422979993600
 TEST_MIRROR_CHANNEL_ID = 1362974839450894356
 TEST_LOG_CHANNEL_ID = 1362964804658003978
 
-# 💦 モード切り替え（NORMA Lor TEST）
-MODE = "TEST"
+# 💦 モード切り替え（NORMAL or TEST）
+MODE = "NORMAL"
 DATA_FILE = "data_test.json" if MODE == "TEST" else "data.json"
 
 # ⏰ 起動以降の投稿だけミラー対象にするための記録（on_readyで再設定する！）
@@ -91,7 +91,7 @@ async def check_once():
             expire_date = (now_jst + timedelta(days=30)).strftime('%Y-%m-%d %H:%M')
             tag = "#Only10Sec" if MODE == "TEST" else "#Only30Days"
             content = msg.content + f"\n\n{tag}\n🗓️ This image will self-destruct on {expire_date}"
-            files = [await a.to_file() for a in message.attachments]
+            files = [await a.to_file() for a in msg.attachments]
             mirror = await mirror_channel.send(content, files=files)
             new_data[mid] = {
                 "mirror_id": mirror.id,
@@ -112,8 +112,7 @@ async def check_once():
         if expired:
             try:
                 msg = await mirror_channel.fetch_message(int(info["mirror_id"]))
-                deletion_notice = f"🗑️ This image was deleted on {info['expire_date']}"
-                await msg.edit(content=deletion_notice, attachments=[])
+                await msg.edit(content=f"🗑️ This image was deleted on {info['expire_date']}", attachments=[])
                 info["deleted"] = True
                 updated = True
                 deleted_count += 1
@@ -138,6 +137,6 @@ def get_mirror_channel_id():
     return TEST_MIRROR_CHANNEL_ID if MODE == "TEST" else NORMAL_MIRROR_CHANNEL_ID
 
 def get_log_channel_id():
-    return NORMAL_LOG_CHANNEL_ID
+    return TEST_LOG_CHANNEL_ID if MODE == "TEST" else NORMAL_LOG_CHANNEL_ID
 
 bot.run(TOKEN)
