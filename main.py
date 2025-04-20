@@ -95,6 +95,7 @@ async def check_once():
     log_channel = await bot.fetch_channel(get_log_channel_id())
 
     messages = [msg async for msg in source_channel.history(limit=10)]
+    existing_ids = {str(msg.id) for msg in messages}
     new_data = {}
 
     for msg in messages:
@@ -102,6 +103,8 @@ async def check_once():
             continue
         mid = str(msg.id)
         ts = msg.created_at.replace(tzinfo=None)
+        edited = msg.edited_at.replace(tzinfo=None).isoformat() if msg.edited_at else None
+
         if mid not in data and startup_time and ts >= startup_time:
             expire_date = (now_jst + timedelta(days=30)).strftime('%Y-%m-%d %H:%M')
             tag = "#Only10Sec" if MODE == "TEST" else "#Only30Days"
@@ -112,12 +115,38 @@ async def check_once():
                 "mirror_id": mirror.id,
                 "timestamp": dt.utcnow().isoformat(),
                 "expire_date": expire_date,
-                "deleted": False
+                "deleted": False,
+                "edited_at": edited
             }
             updated = True
             new_mirrors += 1
         elif mid in data and not data[mid].get("deleted"):
             new_data[mid] = data[mid]
+            new_data[mid]["edited_at"] = edited
+
+            if edited and edited != data[mid].get("edited_at"):
+                try:
+                    mirror_msg = await mirror_channel.fetch_message(int(data[mid]["mirror_id"]))
+                    expire_date = data[mid]["expire_date"]
+                    tag = "#Only10Sec" if MODE == "TEST" else "#Only30Days"
+                    new_content = msg.content + f"\n\n{tag}\n🗓️ This image will self-destruct on {expire_date}"
+                    new_files = [await a.to_file() for a in msg.attachments]
+                    await mirror_msg.edit(content=new_content, attachments=new_files)
+                    print(f"[レオナBOT] 編集反映済 → ミラー更新 ID: {mirror_msg.id}")
+                    updated = True
+                except Exception as e:
+                    print(f"[レオナBOT] ミラー編集エラー: {e}")
+
+    # 🔥 元投稿が削除されたか確認 → ミラー削除＆記録削除
+    for mid, info in list(data.items()):
+        if mid not in existing_ids and not info.get("deleted"):
+            try:
+                msg = await mirror_channel.fetch_message(int(info["mirror_id"]))
+                await msg.delete()
+                print(f"[レオナBOT] 元投稿削除 → ミラーも削除したよ (mid: {mid})")
+            except Exception as e:
+                print(f"[レオナBOT] 元投稿削除検知後のミラー削除エラー: {e}")
+            continue  # 削除済みの投稿は new_data に入れない
 
     for mid, info in list(new_data.items()):
         if info.get("deleted"):
