@@ -78,7 +78,7 @@ async def on_ready():
     keep_alive_loop.start()
 
 @tasks.loop(minutes=1)
-def check_loop():
+async def check_loop():
     pass  # この関数の内容は省略
 
 @tasks.loop(minutes=10)
