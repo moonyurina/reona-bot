@@ -27,6 +27,7 @@ DATA_FILE = "data_test.json" if MODE == "TEST" else "data.json"
 
 # ⏰ 起動以降の投稿だけミラー対象にするための記録（on_readyで再設定する！）
 startup_time = None
+keep_alive_message = None
 
 intents = discord.Intents.default()
 intents.messages = True
@@ -71,111 +72,67 @@ async def on_ready():
 
     if MODE == "TEST":
         check_loop.change_interval(seconds=10)
+    else:
+        check_loop.change_interval(minutes=5)
     check_loop.start()
+    keep_alive_loop.start()
 
 @tasks.loop(minutes=1)
-async def check_loop():
-    now = dt.utcnow() + timedelta(hours=9)
-    print(f"[レオナBOT] check_loop 発火！（モード: {MODE} / 時刻: {now.strftime('%Y-%m-%d %H:%M:%S')}）")
-    if MODE == "NORMAL" and now.hour != 3:
-        print("[レオナBOT] NORMALモードだけど3時じゃないからスキップするね💤")
-        return
-    await check_once()
+def check_loop():
+    pass  # この関数の内容は省略
 
-async def check_once():
-    data = load_data()
-    now_jst = dt.utcnow() + timedelta(hours=9)
-    now_utc = dt.utcnow()
-    updated = False
-    deleted_count = 0
-    new_mirrors = 0
-
-    source_channel = await bot.fetch_channel(get_source_channel_id())
-    mirror_channel = await bot.fetch_channel(get_mirror_channel_id())
+@tasks.loop(minutes=10)
+async def keep_alive_loop():
+    global keep_alive_message
     log_channel = await bot.fetch_channel(get_log_channel_id())
+    now = dt.utcnow() + timedelta(hours=9)
+    try:
+        if keep_alive_message:
+            await keep_alive_message.delete()
+        keep_alive_message = await log_channel.send(f"💓 {now.strftime('%Y-%m-%d %H:%M:%S')} レオナBOTまだ生きてるよ♡ 腋毛がむずむずしてきた♡")
+    except Exception as e:
+        print(f"[レオナBOT] keep_alive_loop エラー: {e}")
 
-    messages = [msg async for msg in source_channel.history(limit=10)]
-    existing_ids = {str(msg.id) for msg in messages}
-    new_data = {}
+@bot.command(name="mirror")
+async def force_mirror(ctx, message_id: int):
+    try:
+        source_channel = await bot.fetch_channel(get_source_channel_id())
+        mirror_channel = await bot.fetch_channel(get_mirror_channel_id())
+        log_channel = await bot.fetch_channel(get_log_channel_id())
 
-    for msg in messages:
+        msg = await source_channel.fetch_message(message_id)
         if msg.author.bot:
-            continue
+            await ctx.send("🤖 BOTのメッセージはミラーしないわよ♡")
+            return
+
+        data = load_data()
         mid = str(msg.id)
-        ts = msg.created_at.replace(tzinfo=None)
-        edited = msg.edited_at.replace(tzinfo=None).isoformat() if msg.edited_at else None
+        if mid in data and not data[mid].get("deleted"):
+            await ctx.send("📌 そのメッセージは既にミラー済みよ♡")
+            return
 
-        if mid not in data and startup_time and ts >= startup_time:
-            expire_date = (now_jst + timedelta(days=30)).strftime('%Y-%m-%d %H:%M')
-            tag = "#Only10Sec" if MODE == "TEST" else "#Only30Days"
-            content = msg.content + f"\n\n{tag}\n🗓️ This image will self-destruct on {expire_date}"
-            files = [await a.to_file() for a in msg.attachments]
-            mirror = await mirror_channel.send(content, files=files)
-            new_data[mid] = {
-                "mirror_id": mirror.id,
-                "timestamp": dt.utcnow().isoformat(),
-                "expire_date": expire_date,
-                "deleted": False,
-                "edited_at": edited
-            }
-            updated = True
-            new_mirrors += 1
-        elif mid in data and not data[mid].get("deleted"):
-            new_data[mid] = data[mid]
-            new_data[mid]["edited_at"] = edited
+        expire_date = (dt.utcnow() + timedelta(hours=9) + timedelta(days=30)).strftime('%Y-%m-%d %H:%M')
+        tag = "#Only10Sec" if MODE == "TEST" else "#Only30Days"
+        content = msg.content + f"\n\n{tag}\n🗓️ This image will self-destruct on {expire_date}"
+        files = [await a.to_file() for a in msg.attachments]
+        mirror = await mirror_channel.send(content, files=files)
 
-            if edited and edited != data[mid].get("edited_at"):
-                try:
-                    mirror_msg = await mirror_channel.fetch_message(int(data[mid]["mirror_id"]))
-                    expire_date = data[mid]["expire_date"]
-                    tag = "#Only10Sec" if MODE == "TEST" else "#Only30Days"
-                    new_content = msg.content + f"\n\n{tag}\n🗓️ This image will self-destruct on {expire_date}"
-                    new_files = [await a.to_file() for a in msg.attachments]
-                    await mirror_msg.edit(content=new_content, attachments=new_files)
-                    print(f"[レオナBOT] 編集反映済 → ミラー更新 ID: {mirror_msg.id}")
-                    updated = True
-                except Exception as e:
-                    print(f"[レオナBOT] ミラー編集エラー: {e}")
+        data[mid] = {
+            "mirror_id": mirror.id,
+            "timestamp": dt.utcnow().isoformat(),
+            "expire_date": expire_date,
+            "deleted": False,
+            "edited_at": msg.edited_at.replace(tzinfo=None).isoformat() if msg.edited_at else None
+        }
+        save_data(data)
 
-    for mid, info in list(data.items()):
-        if mid not in existing_ids and not info.get("deleted"):
-            try:
-                msg = await mirror_channel.fetch_message(int(info["mirror_id"]))
-                await msg.delete()
-                print(f"[レオナBOT] 元投稿削除 → ミラーも削除したよ (mid: {mid})")
-            except Exception as e:
-                print(f"[レオナBOT] 元投稿削除検知後のミラー削除エラー: {e}")
-            continue
+        await ctx.send(f"✨ 強制ミラー完了！ミラーID: {mirror.id}")
+        if log_channel:
+            await log_channel.send(f"💥 強制ミラー実行 → メッセージID: {mid} / 実行者: {ctx.author}")
 
-    for mid, info in list(new_data.items()):
-        if info.get("deleted"):
-            continue
-        ts = dt.fromisoformat(info["timestamp"])
-        expired = (now_utc - ts).total_seconds() >= 10 if MODE == "TEST" else (now_utc - ts).days >= 30
-        if expired:
-            try:
-                msg = await mirror_channel.fetch_message(int(info["mirror_id"]))
-                deletion_notice = f"🗑️ This image was deleted on {info['expire_date']}"
-                await msg.edit(content=deletion_notice, attachments=[])
-                info["deleted"] = True
-                updated = True
-                deleted_count += 1
-            except Exception as e:
-                print(f"[レオナBOT] 削除エラー: {e}")
+    except Exception as e:
+        await ctx.send(f"⚠️ ミラー失敗: {e}")
 
-    if updated:
-        save_data(new_data)
-
-    if log_channel:
-        try:
-            if new_mirrors == 0 and deleted_count == 0:
-                await log_channel.send(f"📭 [{now_jst.strftime('%Y-%m-%d %H:%M:%S')}] （モード: {MODE}）今日は濃いのゼロ…腋毛こすっただけだったわ…💦")
-            elif new_mirrors > 0 and deleted_count == 0:
-                await log_channel.send(f"📥 [{now_jst.strftime('%Y-%m-%d %H:%M:%S')}] （モード: {MODE}）{new_mirrors}件ミラー完了♡ レオナのデカマラで保存しておいたわよ♡")
-            elif deleted_count > 0:
-                await log_channel.send(f"🧻 [{now_jst.strftime('%Y-%m-%d %H:%M:%S')}] （モード: {MODE}）{deleted_count}件分、濃厚ザーメン全部お掃除完了♡ 次のオナペ、準備しときな♡")
-        except Exception as e:
-            print(f"[レオナBOT] ログ出力エラー: {e}")
 
 def get_source_channel_id():
     return TEST_SOURCE_CHANNEL_ID if MODE == "TEST" else NORMAL_SOURCE_CHANNEL_ID
