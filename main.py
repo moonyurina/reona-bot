@@ -137,7 +137,6 @@ async def check_once():
                 except Exception as e:
                     print(f"[レオナBOT] ミラー編集エラー: {e}")
 
-    # 🔥 元投稿が削除されたか確認 → ミラー削除＆記録削除
     for mid, info in list(data.items()):
         if mid not in existing_ids and not info.get("deleted"):
             try:
@@ -146,7 +145,7 @@ async def check_once():
                 print(f"[レオナBOT] 元投稿削除 → ミラーも削除したよ (mid: {mid})")
             except Exception as e:
                 print(f"[レオナBOT] 元投稿削除検知後のミラー削除エラー: {e}")
-            continue  # 削除済みの投稿は new_data に入れない
+            continue
 
     for mid, info in list(new_data.items()):
         if info.get("deleted"):
