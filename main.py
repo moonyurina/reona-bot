@@ -4,6 +4,8 @@ import datetime
 import json
 import os
 from datetime import datetime as dt, timedelta
+from flask import Flask
+import threading
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━
 # 💦 レオナの淫乱変態設定ゾーン（でかまら起動準備）
@@ -33,6 +35,15 @@ intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "レオナBOT生きてるよ♡"
+
+def run_flask():
+    app.run(host="0.0.0.0", port=8080)
 
 def load_data():
     if os.path.exists(DATA_FILE):
@@ -77,7 +88,7 @@ async def on_ready():
     check_loop.start()
     keep_alive_loop.start()
 
-@tasks.loop(minutes=1)
+@tasks.loop(minutes=5)
 async def check_loop():
     pass  # この関数の内容は省略
 
@@ -143,4 +154,6 @@ def get_mirror_channel_id():
 def get_log_channel_id():
     return LOG_CHANNEL_ID
 
-bot.run(TOKEN)
+if __name__ == "__main__":
+    threading.Thread(target=run_flask).start()
+    bot.run(TOKEN)
