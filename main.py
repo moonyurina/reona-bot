@@ -58,6 +58,10 @@ def save_data(data):
 def get_now_utc():
     return dt.utcnow()
 
+def is_mirror_check_time():
+    now = dt.utcnow() + timedelta(hours=9)
+    return now.weekday() in [0, 2, 4, 5, 6] and 0 <= now.hour < 3
+
 @bot.event
 async def on_ready():
     global startup_time
@@ -81,16 +85,18 @@ async def on_ready():
     except Exception as e:
         print(f"[レオナBOT] ログチャンネル取得・送信時のエラー: {e}")
 
-    if MODE == "TEST":
-        check_loop.change_interval(seconds=10)
-    else:
-        check_loop.change_interval(minutes=5)
+    check_loop.change_interval(minutes=15)
     check_loop.start()
     keep_alive_loop.start()
 
-@tasks.loop(minutes=5)
+@tasks.loop(minutes=15)
 async def check_loop():
-    pass  # この関数の内容は省略
+    if not is_mirror_check_time():
+        print("[レオナBOT] ⏰ オナ禁タイム中…check_loopスキップ♡")
+        return
+    print("[レオナBOT] 🔁 check_loop 実行中…")
+    # ミラー処理などここに入れる（省略）
+    pass
 
 @tasks.loop(minutes=10)
 async def keep_alive_loop():
@@ -100,7 +106,7 @@ async def keep_alive_loop():
     try:
         if keep_alive_message:
             await keep_alive_message.delete()
-        keep_alive_message = await log_channel.send(f"💓 {now.strftime('%Y-%m-%d %H:%M:%S')} レオナBOTまだ生きてるよ♡ 腋毛がむずむずしてきた♡")
+        keep_alive_message = await log_channel.send(f"💓 {now.strftime('%Y-%m-%d %H:%M:%S')} レオナBOTまだ生きてるよ♡ オナ禁でビクビクしてる♡")
     except Exception as e:
         print(f"[レオナBOT] keep_alive_loop エラー: {e}")
 
@@ -143,7 +149,6 @@ async def force_mirror(ctx, message_id: int):
 
     except Exception as e:
         await ctx.send(f"⚠️ ミラー失敗: {e}")
-
 
 def get_source_channel_id():
     return TEST_SOURCE_CHANNEL_ID if MODE == "TEST" else NORMAL_SOURCE_CHANNEL_ID
