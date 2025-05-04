@@ -6,6 +6,7 @@ import os
 from datetime import datetime as dt, timedelta
 from flask import Flask
 import threading
+import asyncio
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━
 # 💦 レオナの淫乱変態設定ゾーン（でかまら起動準備）
@@ -30,7 +31,6 @@ DATA_FILE = "data_test.json" if MODE == "TEST" else "data.json"
 # ⏰ 起動以降の投稿だけミラー対象にするための記録（on_readyで再設定する！）
 startup_time = None
 keep_alive_message = None
-
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
@@ -60,7 +60,7 @@ def get_now_utc():
 
 def is_mirror_check_time():
     now = dt.utcnow() + timedelta(hours=9)
-    return now.weekday() in [0, 2, 4, 5, 6] and 0 <= now.hour < 3
+    return 0 <= now.hour < 4
 
 @bot.event
 async def on_ready():
@@ -73,18 +73,22 @@ async def on_ready():
     print(f"[レオナBOT] BOTユーザー: {bot.user} | ID: {bot.user.id}")
     print(f"[レオナBOT] 所属ギルド一覧: {[g.name for g in bot.guilds]}")
 
-    log_channel = None
     try:
+        await asyncio.sleep(2)
         log_channel = await bot.fetch_channel(get_log_channel_id())
-        print(f"[レオナBOT] ログチャンネル取得成功 → ID: {get_log_channel_id()} | オブジェクト: {log_channel}")
+        print(f"[レオナBOT] ログチャンネル取得成功 → ID: {get_log_channel_id()}")
+
         if log_channel:
+            await asyncio.sleep(2)
             await log_channel.send(f"🚀 [{now.strftime('%Y-%m-%d %H:%M:%S')}] レオナBOT起動完了（モード: {MODE}）…ボーボー腋毛スタンバイ中♡")
+            await asyncio.sleep(2)
             await log_channel.send(f"🔁 [{now.strftime('%Y-%m-%d %H:%M:%S')}] Resume Web Service 開始（モード: {MODE}）…腋汗とチン臭全開で見張ってるよ♡")
         else:
-            print("[レオナBOT] ⚠️ ログチャンネルがNoneやで…IDミスかBOTの権限不足かも！")
+            print("[レオナBOT] ⚠️ ログチャンネルがNoneやで…")
     except Exception as e:
         print(f"[レオナBOT] ログチャンネル取得・送信時のエラー: {e}")
 
+    await asyncio.sleep(2)
     check_loop.change_interval(minutes=15)
     check_loop.start()
     keep_alive_loop.start()
@@ -92,10 +96,12 @@ async def on_ready():
 @tasks.loop(minutes=15)
 async def check_loop():
     if not is_mirror_check_time():
-        print("[レオナBOT] ⏰ オナ禁タイム中…check_loopスキップ♡")
+        print("[レオナBOT] ⏰ 時間外なのでcheck_loopスキップ中…")
         return
     print("[レオナBOT] 🔁 check_loop 実行中…")
     # ミラー処理などここに入れる（省略）
+    messages = [msg async for msg in (await bot.fetch_channel(get_source_channel_id())).history(limit=5)]
+    print(f"[レオナBOT] 最新投稿を {len(messages)} 件取得しました")
     pass
 
 @tasks.loop(minutes=10)
@@ -104,9 +110,11 @@ async def keep_alive_loop():
     log_channel = await bot.fetch_channel(get_log_channel_id())
     now = dt.utcnow() + timedelta(hours=9)
     try:
-        if keep_alive_message:
-            await keep_alive_message.delete()
-        keep_alive_message = await log_channel.send(f"💓 {now.strftime('%Y-%m-%d %H:%M:%S')} レオナBOTまだ生きてるよ♡ オナ禁でビクビクしてる♡")
+        new_msg = f"💓 {now.strftime('%Y-%m-%d %H:%M:%S')} レオナBOTまだ生きてるよ♡ 腋毛がむずむずしてきた♡"
+        if keep_alive_message and keep_alive_message.channel.id == log_channel.id:
+            await keep_alive_message.edit(content=new_msg)
+        else:
+            keep_alive_message = await log_channel.send(new_msg)
     except Exception as e:
         print(f"[レオナBOT] keep_alive_loop エラー: {e}")
 
