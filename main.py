@@ -56,7 +56,7 @@ def run_flask():
     app.run(host="0.0.0.0", port=8080)
 
 # 🖚 スクリプト起動時にFlaskを走らせるスレッドを立ち上げる♡
-threading.Thread(target=run_flask).start()
+threading.Thread(target=run_flask, daemon=True).start()
 
 # 📂 保存データの読み込み♡
 def load_data():
@@ -191,4 +191,7 @@ if __name__ == "__main__":
         print(f"[レオナBOT] ✅ Discordにログイン完了！ {bot.user}")
         keep_alive_loop.start()
 
-    bot.run(TOKEN)
+    try:
+        bot.run(TOKEN)
+    except Exception as e:
+        print(f"[レオナBOT] ❌ Discordログイン失敗かも！？ → {e}")
