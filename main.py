@@ -13,7 +13,7 @@ import asyncio
 # ━━━━━━━━━━━━━━━━━━━━━━━━
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-# 🔥 本番モード（濃厚フタナリ汁が飛び交う）
+# 🔥 　本番モード（濃厚フタナリ汁が飛び交う）
 NORMAL_SOURCE_CHANNEL_ID = 1350654751553093692
 NORMAL_MIRROR_CHANNEL_ID = 1362400364069912606
 
