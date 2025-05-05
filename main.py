@@ -55,9 +55,6 @@ def home():
 def run_flask():
     app.run(host="0.0.0.0", port=8080)
 
-# 🖚 スクリプト起動時にFlaskを走らせるスレッドを立ち上げる♡
-threading.Thread(target=run_flask, daemon=True).start()
-
 # 📂 保存データの読み込み♡
 def load_data():
     if os.path.exists(DATA_FILE):
@@ -185,6 +182,8 @@ async def keep_alive_loop():
 if __name__ == "__main__":
     startup_time = dt.utcnow()
     print(f"[レオナBOT] 🚀 起動するよ♡ 起動元: {get_deploy_source()}")
+
+    threading.Thread(target=run_flask, daemon=True).start()
 
     @bot.event
     async def on_ready():
