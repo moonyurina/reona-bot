@@ -67,7 +67,6 @@ def load_data():
 
 # 💾 保存時に30日超えの古い子は削除しちゃう♡
 def save_data(data):
-    # 💿 データ変更がなければ無駄にイかない♡ キャッシュでおさえる♡
     old_data = load_data()
     if json.dumps(data, sort_keys=True) == json.dumps(old_data, sort_keys=True):
         return
@@ -140,7 +139,6 @@ async def keep_alive_loop():
         )
         new_msg = header + plain_log
 
-        # 同じ内容だったら前のログを削除して、新しくイかせる♡
         if keep_alive_message and keep_alive_message.channel.id == log_channel.id:
             if plain_log == last_keep_alive_plain:
                 await keep_alive_message.delete()
@@ -156,7 +154,6 @@ async def keep_alive_loop():
 # 🧼 !checkコマンドで最新10件を検査♡（削除されてたらミラーも消す♡）
 @bot.command(name="check")
 async def manual_check_deleted_messages(ctx):
-    # 🔍 チェック開始時に環境とコマンド一覧も表示するよ♡
     deploy_info = f"💻 現在の実行環境: `{get_deploy_source()}` 経由だよ♡"
     command_info = get_command_info()
     await ctx.send(
@@ -206,3 +203,21 @@ async def manual_check_deleted_messages(ctx):
         await ctx.send(file=discord.File("assets/delete_success.gif"))
     else:
         await ctx.send(file=discord.File("assets/nothing_deleted.gif"))
+
+# 🚨 起動時にログ投稿♡
+@bot.event
+async def on_ready():
+    global startup_time
+    startup_time = dt.utcnow()
+    log_channel = await bot.fetch_channel(LOG_CHANNEL_ID)
+    now = dt.utcnow() + timedelta(hours=9)
+    startup_msg = (
+        f"🌅 {now.strftime('%Y-%m-%d %H:%M:%S')} レオナBOT起動したよ♡\n"
+        f"💻 実行環境: `{get_deploy_source()}`\n"
+        f"{get_uptime()}\n"
+        f"{get_mirror_status()}\n"
+        f"{get_command_info()}"
+    )
+    await log_channel.send(startup_msg)
+    keep_alive_loop.start()
+    print("[レオナBOT] 起動完了♡")
