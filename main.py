@@ -8,33 +8,25 @@ from flask import Flask
 import threading
 import asyncio
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━
-# 💦 レオナの淫乱変態設定ゾーン（でかまら起動準備）
-# ━━━━━━━━━━━━━━━━━━━━━━━━
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-# 🔥 　本番モード（濃厚フタナリ汁が飛び交う）
 NORMAL_SOURCE_CHANNEL_ID = 1350654751553093692
 NORMAL_MIRROR_CHANNEL_ID = 1362400364069912606
 
-# 💋 TESTモード（射精実験ルーム💦）
 TEST_SOURCE_CHANNEL_ID = 1142345422979993600
 TEST_MIRROR_CHANNEL_ID = 1362974839450894356
 
-# 📢 ログチャンネルは共通（腋毛とザーメンの報告場所）
 LOG_CHANNEL_ID = 1362964804658003978
 
-# 💦 モード切り替え（NORMAL or TEST） ← ここを"TEST"にすればテスト用になる♡
 MODE = "NORMAL"
 DATA_FILE = "data_test.json" if MODE == "TEST" else "data.json"
 
-# ⏰ 起動以降の投稿だけミラー対象にするための記録（on_readyで再設定する！）
 startup_time = None
 keep_alive_message = None
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix=os.getenv("BOT_PREFIX", "!"), intents=intents)
 
 app = Flask(__name__)
 
@@ -47,8 +39,12 @@ def run_flask():
 
 def load_data():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
+        try:
+            with open(DATA_FILE, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            print("[レオナBOT] ⚠️ dataファイルが壊れてるみたい…初期化するよ♡")
+            return {}
     return {}
 
 def save_data(data):
@@ -80,9 +76,9 @@ async def on_ready():
 
         if log_channel:
             await asyncio.sleep(2)
-            await log_channel.send(f"🚀 [{now.strftime('%Y-%m-%d %H:%M:%S')}] レオナBOT起動完了（モード: {MODE}）…ボーボー腋毛スタンバイ中♡")
-            await asyncio.sleep(2)
-            await log_channel.send(f"🔁 [{now.strftime('%Y-%m-%d %H:%M:%S')}] Resume Web Service 開始（モード: {MODE}）…腋汗とチン臭全開で見張ってるよ♡")
+            await log_channel.send(
+                f"🚀🔁 [{now.strftime('%Y-%m-%d %H:%M:%S')}] レオナBOT起動完了（モード: {MODE}）\nボーボー腋毛スタンバイ＆Webサービス再開中♡"
+            )
         else:
             print("[レオナBOT] ⚠️ ログチャンネルがNoneやで…")
     except Exception as e:
@@ -99,10 +95,12 @@ async def check_loop():
         print("[レオナBOT] ⏰ 時間外なのでcheck_loopスキップ中…")
         return
     print("[レオナBOT] 🔁 check_loop 実行中…")
-    # ミラー処理などここに入れる（省略）
-    messages = [msg async for msg in (await bot.fetch_channel(get_source_channel_id())).history(limit=5)]
-    print(f"[レオナBOT] 最新投稿を {len(messages)} 件取得しました")
-    pass
+    try:
+        channel = await bot.fetch_channel(get_source_channel_id())
+        messages = [msg async for msg in channel.history(limit=5)]
+        print(f"[レオナBOT] 最新投稿を {len(messages)} 件取得しました")
+    except discord.HTTPException as e:
+        print(f"[レオナBOT] チェック中にAPI制限またはエラー: {e}")
 
 @tasks.loop(minutes=10)
 async def keep_alive_loop():
@@ -155,8 +153,46 @@ async def force_mirror(ctx, message_id: int):
         if log_channel:
             await log_channel.send(f"💥 強制ミラー実行 → メッセージID: {mid} / 実行者: {ctx.author}")
 
+    except discord.HTTPException as e:
+        await ctx.send(f"⚠️ Discord APIエラー: {e}")
     except Exception as e:
-        await ctx.send(f"⚠️ ミラー失敗: {e}")
+        await ctx.send(f"⚠️ 予期せぬミラー失敗: {e}")
+
+@bot.command(name="check")
+async def manual_check_deleted_messages(ctx):
+    await ctx.send("🔍 最新10件のミラー元メッセージの削除チェックを始めるよ♡")
+    data = load_data()
+    updated = 0
+
+    source_channel = await bot.fetch_channel(get_source_channel_id())
+    mirror_channel = await bot.fetch_channel(get_mirror_channel_id())
+    log_channel = await bot.fetch_channel(get_log_channel_id())
+
+    for mid, info in list(data.items())[-10:]:
+        if info.get("deleted"):
+            continue
+
+        try:
+            await source_channel.fetch_message(int(mid))
+        except discord.NotFound:
+            try:
+                mirror_msg = await mirror_channel.fetch_message(info["mirror_id"])
+                await mirror_msg.delete()
+            except Exception as e:
+                print(f"[レオナBOT] ミラーメッセージ削除エラー: {e}")
+
+            info["deleted"] = True
+            updated += 1
+            if log_channel:
+                await log_channel.send(f"❌ 元メッセージが削除されたので、ミラーも削除したよ → ID: {mid}")
+
+        await asyncio.sleep(0.5)
+
+    if updated > 0:
+        save_data(data)
+        await ctx.send(f"🧹 {updated} 件の削除ミラーを処理したよ♡")
+    else:
+        await ctx.send("👌 削除されたメッセージはなかったみたい♡")
 
 def get_source_channel_id():
     return TEST_SOURCE_CHANNEL_ID if MODE == "TEST" else NORMAL_SOURCE_CHANNEL_ID
