@@ -45,7 +45,8 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "レオナBOT生きてるよ♡"
+    summary = get_summary_text()
+    return f"レオナBOT生きてるよ♡\n{summary}シコリ目だお"
 
 # 🚀 Flaskちゃんを並列で立ち上げる♡
 def run_flask():
@@ -121,103 +122,9 @@ def get_mirror_status():
     deleted = sum(1 for d in data.values() if d.get("deleted"))
     return f"📊 ミラー総数: {total}件 / 削除済み: {deleted}件"
 
-# 💓 レオナBOTが10分ごとにオナ声あげるやつ♡（生きてる確認）
-@tasks.loop(minutes=10)
-async def keep_alive_loop():
-    global keep_alive_message, last_keep_alive_plain
-    log_channel = await bot.fetch_channel(LOG_CHANNEL_ID)
-    now = dt.utcnow() + timedelta(hours=9)
-    try:
-        header = (
-            f"🕘 {now.strftime('%Y-%m-%d %H:%M:%S')} 現在のレオナBOT状況だお♡\n"
-            f"💻 reonaBOTは `{get_deploy_source()}` 経由でシコシコしてるお♡\n"
-            f"{get_uptime()}\n"
-        )
-        plain_log = (
-            get_mirror_status() + "\n" +
-            get_command_info()
-        )
-        new_msg = header + plain_log
-
-        if keep_alive_message and keep_alive_message.channel.id == log_channel.id:
-            if plain_log == last_keep_alive_plain:
-                await keep_alive_message.delete()
-            keep_alive_message = await log_channel.send(new_msg)
-        else:
-            keep_alive_message = await log_channel.send(new_msg)
-
-        last_keep_alive_plain = plain_log
-
-    except Exception as e:
-        print(f"[レオナBOT] keep_alive_loop エラー: {e}")
-
-# 🧼 !checkコマンドで最新10件を検査♡（削除されてたらミラーも消す♡）
-@bot.command(name="check")
-async def manual_check_deleted_messages(ctx):
-    deploy_info = f"💻 現在の実行環境: `{get_deploy_source()}` 経由だよ♡"
-    command_info = get_command_info()
-    await ctx.send(
-        f"🔍 最新10件のミラー元メッセージの削除チェックを始めるよ♡\n"
-        f"{deploy_info}\n"
-        f"{command_info}"
-    )
-
+# 💥 Flaskでも表示したい要約♡
+def get_summary_text():
     data = load_data()
-    updated = 0
-    checked_list = []
-
-    source_channel = await bot.fetch_channel(NORMAL_SOURCE_CHANNEL_ID if MODE == "NORMAL" else TEST_SOURCE_CHANNEL_ID)
-    mirror_channel = await bot.fetch_channel(NORMAL_MIRROR_CHANNEL_ID if MODE == "NORMAL" else TEST_MIRROR_CHANNEL_ID)
-    log_channel = await bot.fetch_channel(LOG_CHANNEL_ID)
-
-    for mid, info in list(data.items())[-10:]:
-        status = "✅ 存在"
-        if info.get("deleted"):
-            continue
-
-        try:
-            await source_channel.fetch_message(int(mid))
-        except discord.NotFound:
-            try:
-                mirror_msg = await mirror_channel.fetch_message(info["mirror_id"])
-                await mirror_msg.delete()
-            except Exception as e:
-                print(f"[レオナBOT] ミラーメッセージ削除エラー: {e}")
-
-            info["deleted"] = True
-            updated += 1
-            status = "❌ 削除"
-            if log_channel:
-                await log_channel.send(f"❌ 元メッセージが削除されたので、ミラーも削除したよ → ID: {mid}")
-
-        timestamp = info.get("timestamp", "N/A")[:10]
-        expire = info.get("expire_date", "N/A")[:10]
-        checked_list.append(f"ID: {mid} → {status}｜📅 投稿: {timestamp}｜⌛ 削除予定: {expire}")
-        await asyncio.sleep(0.5)
-
-    if updated > 0:
-        save_data(data)
-    status_report = "\n".join(checked_list)
-    await ctx.send(f"🗾 チェック結果一覧：\n{status_report}")
-    if updated > 0:
-        await ctx.send(file=discord.File("assets/delete_success.gif"))
-    else:
-        await ctx.send(file=discord.File("assets/nothing_deleted.gif"))
-
-# 🚨 起動時にログ投稿♡
-@bot.event
-async def on_ready():
-    global startup_time
-    startup_time = dt.utcnow()
-    log_channel = await bot.fetch_channel(LOG_CHANNEL_ID)
-    now = dt.utcnow() + timedelta(hours=9)
-    startup_msg = (
-        f"🌅 {now.strftime('%Y-%m-%d %H:%M:%S')} レオナBOT起動したよ♡\n"
-        f"💻 実行環境: `{get_deploy_source()}`\n"
-        f"{get_uptime()}\n"
-        f"{get_mirror_status()}\n"
-        f"{get_command_info()}"
-    )
-    await log_channel.send(startup_msg)
-    keep_alive_loop.start()
-    print("[レオナBOT] 起動完了♡")
+    total = len(data)
+    deleted = sum(1 for d in data.values() if d.get("deleted"))
+    return f"📊 {total}件中 {deleted}件が削除されたよ♡ "
