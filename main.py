@@ -1,4 +1,4 @@
-# 💦 ここはレオナの変態中枢♡ BOT起動の全コードよ♡
+# 💦 ここはレオナの変態中柱♡ BOT起動の全コードよ♡
 
 import discord
 from discord.ext import commands, tasks
@@ -25,16 +25,16 @@ TEST_MIRROR_CHANNEL_ID = 1362974839450894356
 # 📬 ログチャンネル（実況報告♡）
 LOG_CHANNEL_ID = 1362964804658003978
 
-# 💋 モード切替スイッチ（本番かテストか…どっちでイく？）
+# 💋 モード切換スイッチ（本番かテストか…どっちでイく？）
 MODE = "NORMAL"
 DATA_FILE = "data_test.json" if MODE == "TEST" else "data.json"
 
-# 🔧 グローバル変数（起動時間とかログの管理♡）
+# ⛏️ グローバル変数（起動時間とかログの管理♡）
 startup_time = None
 keep_alive_message = None
 last_keep_alive_plain = None
 
-# 📡 ディスコードの淫乱設定♡
+# 📱 ディスコードの淫乱設定♡
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
@@ -52,7 +52,7 @@ def home():
 def run_flask():
     app.run(host="0.0.0.0", port=8080)
 
-# 🔚 スクリプト起動時にFlaskを走らせるスレッドを立ち上げる♡
+# 🖚 スクリプト起動時にFlaskを走らせるスレッドを立ち上げる♡
 threading.Thread(target=run_flask).start()
 
 # 📂 保存データの読み込み♡
@@ -66,7 +66,7 @@ def load_data():
             return {}
     return {}
 
-# 💾 保存時に30日超えの古い子は削除しちゃう♡
+# 📂 保存時に30日超えの古い子は削除しちゃう♡
 def save_data(data):
     old_data = load_data()
     if json.dumps(data, sort_keys=True) == json.dumps(old_data, sort_keys=True):
@@ -88,7 +88,7 @@ def save_data(data):
 def get_now_utc():
     return dt.utcnow()
 
-# ⏰ ミラー作業するべき時間帯かチェック♡（夜中だけ変態稼働♡）
+# ⏰ ミラー作業するべき時間帯かチェック♡（夜中だけ変態稽働♡）
 def is_mirror_check_time():
     now = dt.utcnow() + timedelta(hours=9)
     return 0 <= now.hour < 4
@@ -97,7 +97,7 @@ def is_mirror_check_time():
 def get_deploy_source():
     return socket.gethostname()
 
-# ⏱️ レオナの稼働時間を計算♡（起動時間から今まで♡）
+# ⏱️ レオナの精疲時間を計算♡（起動時間から今まで♡）
 def get_uptime():
     if not startup_time:
         return "（起動時間不明…レオナまだイってない♡）"
@@ -105,7 +105,7 @@ def get_uptime():
     delta = now - startup_time
     hours, remainder = divmod(delta.total_seconds(), 3600)
     minutes, seconds = divmod(remainder, 60)
-    return f"💡 稼働時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒"
+    return f"💡 精疲時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒"
 
 # 📜 使えるコマンドたちを紹介するよ♡
 def get_command_info():
@@ -122,9 +122,65 @@ def get_mirror_status():
     deleted = sum(1 for d in data.values() if d.get("deleted"))
     return f"📊 ミラー総数: {total}件 / 削除済み: {deleted}件"
 
-# 💥 Flaskでも表示したい要約♡
+# 💥 Flaskでも表示したい要総♡
 def get_summary_text():
     data = load_data()
     total = len(data)
     deleted = sum(1 for d in data.values() if d.get("deleted"))
     return f"📊 {total}件中 {deleted}件が削除されたよ♡ "
+
+# 🔍 !checkコマンド♡（詳細チェック♡）
+@bot.command()
+async def check(ctx):
+    data = load_data()
+    recent_items = sorted(data.items(), key=lambda x: x[1].get("timestamp", ""), reverse=True)[:10]
+    lines = ["🔍 最新10件のミラー元メッセージの削除チェックを始めるよ♡"]
+    deleted_count = 0
+    for mid, info in recent_items:
+        ts = info.get("timestamp")
+        deleted = info.get("deleted", False)
+        status = "🗑️ 削除済み" if deleted else "✅ 存在"
+        ts_display = dt.fromisoformat(ts).strftime("%Y-%m-%d") if ts else "?"
+        lines.append(f"・{mid} ({ts_display}) → {status}")
+        if deleted:
+            deleted_count += 1
+
+    if deleted_count == 0:
+        lines.append("👌 削除されたメッセージはなかったみたい♡")
+    lines.append(get_mirror_status())
+    lines.append(get_uptime())
+    lines.append(f"🚉 起動元: `{get_deploy_source()}`")
+    lines.append(get_command_info())
+
+    await ctx.send("\n".join(lines))
+
+# ✅ 定期ログ更新ループ（変化ないなら前消して更新♡）
+@tasks.loop(minutes=10)
+async def keep_alive_loop():
+    global keep_alive_message, last_keep_alive_plain
+    log_channel = await bot.fetch_channel(LOG_CHANNEL_ID)
+    summary = get_summary_text()
+    now = dt.utcnow() + timedelta(hours=9)
+    new_msg = f"💓 {now.strftime('%Y-%m-%d %H:%M:%S')} レオナBOTまだ生きてるよ♡\n{summary}シコリ目だお"
+
+    if keep_alive_message and keep_alive_message.channel.id == log_channel.id:
+        if new_msg == last_keep_alive_plain:
+            try:
+                await keep_alive_message.delete()
+                keep_alive_message = await log_channel.send(new_msg)
+                last_keep_alive_plain = new_msg
+            except Exception as e:
+                print(f"[レオナBOT] keep_aliveループでメッセージ削除失敗: {e}")
+        else:
+            keep_alive_message = await log_channel.send(new_msg)
+            last_keep_alive_plain = new_msg
+    else:
+        keep_alive_message = await log_channel.send(new_msg)
+        last_keep_alive_plain = new_msg
+
+# ▶️ 起動ログとともにDiscordボットを起動♡
+if __name__ == "__main__":
+    startup_time = dt.utcnow()
+    print(f"[レオナBOT] 🚀 起動するよ♡ 起動元: {get_deploy_source()}")
+    keep_alive_loop.start()
+    bot.run(TOKEN)
