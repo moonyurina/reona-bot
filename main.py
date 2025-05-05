@@ -7,6 +7,7 @@ from datetime import datetime as dt, timedelta
 from flask import Flask
 import threading
 import asyncio
+import socket
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -58,6 +59,9 @@ def is_mirror_check_time():
     now = dt.utcnow() + timedelta(hours=9)
     return 0 <= now.hour < 4
 
+def get_deploy_source():
+    return socket.gethostname()
+
 @bot.event
 async def on_ready():
     global startup_time
@@ -77,7 +81,7 @@ async def on_ready():
         if log_channel:
             await asyncio.sleep(2)
             await log_channel.send(
-                f"🚀🔁 [{now.strftime('%Y-%m-%d %H:%M:%S')}] レオナBOT起動完了（モード: {MODE}）\nボーボー腋毛スタンバイ＆Webサービス再開中♡"
+                f"🚀🔁 [{now.strftime('%Y-%m-%d %H:%M:%S')}] レオナBOT起動完了（モード: {MODE}）\nデプロイ環境: `{get_deploy_source()}`\nボーボー腋毛スタンバイ＆Webサービス再開中♡"
             )
         else:
             print("[レオナBOT] ⚠️ ログチャンネルがNoneやで…")
@@ -108,7 +112,7 @@ async def keep_alive_loop():
     log_channel = await bot.fetch_channel(get_log_channel_id())
     now = dt.utcnow() + timedelta(hours=9)
     try:
-        new_msg = f"💓 {now.strftime('%Y-%m-%d %H:%M:%S')} レオナBOTまだ生きてるよ♡ 腋毛がむずむずしてきた♡"
+        new_msg = f"💓 {now.strftime('%Y-%m-%d %H:%M:%S')} レオナBOTまだ生きてるよ♡ 腋毛がむずむずしてきた♡ デプロイ: `{get_deploy_source()}`"
         if keep_alive_message and keep_alive_message.channel.id == log_channel.id:
             await keep_alive_message.edit(content=new_msg)
         else:
