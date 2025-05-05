@@ -1,4 +1,4 @@
-
+# 💦 ここはレオナの変態中枢♡ BOT起動の全コードよ♡
 
 import discord
 from discord.ext import commands, tasks
@@ -142,6 +142,12 @@ async def keep_alive_loop():
 # 🧼 !checkコマンドで最新10件を検査♡（削除されてたらミラーも消す♡）
 @bot.command(name="check")
 async def manual_check_deleted_messages(ctx):
+    # 🔍 チェック開始時に環境とコマンド一覧も表示するよ♡
+    deploy_info = f"💻 現在の実行環境: `{get_deploy_source()}` 経由だよ♡"
+    command_info = get_command_info()
+    await ctx.send(f"🔍 最新10件のミラー元メッセージの削除チェックを始めるよ♡
+{deploy_info}
+{command_info}")
     await ctx.send("🔍 最新10件のミラー元メッセージの削除チェックを始めるよ♡")
     data = load_data()
     updated = 0
