@@ -13,6 +13,9 @@ import socket
 
 # 💋 セクシーなトークンちゃんを.envからお迎え♡
 TOKEN = os.getenv("DISCORD_TOKEN")
+if not TOKEN:
+    print("[レオナBOT] ❌ DISCORD_TOKEN が設定されてないよ！")
+    exit(1)
 
 # 🔥 本番チャンネル設定（濃厚ミラー♡）
 NORMAL_SOURCE_CHANNEL_ID = 1350654751553093692
@@ -182,5 +185,10 @@ async def keep_alive_loop():
 if __name__ == "__main__":
     startup_time = dt.utcnow()
     print(f"[レオナBOT] 🚀 起動するよ♡ 起動元: {get_deploy_source()}")
-    keep_alive_loop.start()
+
+    @bot.event
+    async def on_ready():
+        print(f"[レオナBOT] ✅ Discordにログイン完了！ {bot.user}")
+        keep_alive_loop.start()
+
     bot.run(TOKEN)
