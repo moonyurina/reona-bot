@@ -22,7 +22,7 @@ NORMAL_MIRROR_CHANNEL_ID = 1362400364069912606
 TEST_SOURCE_CHANNEL_ID = 1142345422979993600
 TEST_MIRROR_CHANNEL_ID = 1362974839450894356
 
-# 📢 ログチャンネル（実況報告♡）
+# 📬 ログチャンネル（実況報告♡）
 LOG_CHANNEL_ID = 1362964804658003978
 
 # 💋 モード切替スイッチ（本番かテストか…どっちでイく？）
@@ -50,6 +50,9 @@ def home():
 # 🚀 Flaskちゃんを並列で立ち上げる♡
 def run_flask():
     app.run(host="0.0.0.0", port=8080)
+
+# 🔚 スクリプト起動時にFlaskを走らせるスレッドを立ち上げる♡
+threading.Thread(target=run_flask).start()
 
 # 📂 保存データの読み込み♡
 def load_data():
@@ -198,7 +201,7 @@ async def manual_check_deleted_messages(ctx):
     if updated > 0:
         save_data(data)
     status_report = "\n".join(checked_list)
-    await ctx.send(f"🧾 チェック結果一覧：\n{status_report}")
+    await ctx.send(f"🗾 チェック結果一覧：\n{status_report}")
     if updated > 0:
         await ctx.send(file=discord.File("assets/delete_success.gif"))
     else:
