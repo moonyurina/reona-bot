@@ -190,8 +190,8 @@ async def manual_check_deleted_messages(ctx):
             if log_channel:
                 await log_channel.send(f"❌ 元メッセージが削除されたので、ミラーも削除したよ → ID: {mid}")
 
-        timestamp = info.get("timestamp", "N/A")
-        expire = info.get("expire_date", "N/A")
+        timestamp = info.get("timestamp", "N/A")[:10]
+        expire = info.get("expire_date", "N/A")[:10]
         checked_list.append(f"ID: {mid} → {status}｜📅 投稿: {timestamp}｜⌛ 削除予定: {expire}")
         await asyncio.sleep(0.5)
 
