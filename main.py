@@ -57,8 +57,8 @@ def load_data():
         try:
             with open(DATA_FILE, "r") as f:
                 return json.load(f)
-        except json.JSONDecodeError:
-            print("[レオナBOT] ⚠️ dataファイルが壊れてるみたい…初期化するよ♡")
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"[レオナBOT] ⚠️ dataファイル読めなかったよ…壊れてるかも♡ 初期化するね♡ → {e}")
             return {}
     return {}
 
@@ -94,6 +94,16 @@ def is_mirror_check_time():
 def get_deploy_source():
     return socket.gethostname()
 
+# ⏱️ レオナの稼働時間を計算♡（起動時間から今まで♡）
+def get_uptime():
+    if not startup_time:
+        return "（起動時間不明…レオナまだイってない♡）"
+    now = dt.utcnow()
+    delta = now - startup_time
+    hours, remainder = divmod(delta.total_seconds(), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"💡 稼働時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒"
+
 # 📜 使えるコマンドたちを紹介するよ♡
 def get_command_info():
     return (
@@ -119,6 +129,7 @@ async def keep_alive_loop():
         header = (
             f"🕘 {now.strftime('%Y-%m-%d %H:%M:%S')} 現在のレオナBOT状況だお♡\n"
             f"💻 reonaBOTは `{get_deploy_source()}` 経由でシコシコしてるお♡\n"
+            f"{get_uptime()}\n"
         )
         plain_log = (
             get_mirror_status() + "\n" +
@@ -145,10 +156,12 @@ async def manual_check_deleted_messages(ctx):
     # 🔍 チェック開始時に環境とコマンド一覧も表示するよ♡
     deploy_info = f"💻 現在の実行環境: `{get_deploy_source()}` 経由だよ♡"
     command_info = get_command_info()
-    await ctx.send(f"🔍 最新10件のミラー元メッセージの削除チェックを始めるよ♡
-{deploy_info}
-{command_info}")
-    await ctx.send("🔍 最新10件のミラー元メッセージの削除チェックを始めるよ♡")
+    await ctx.send(
+        f"🔍 最新10件のミラー元メッセージの削除チェックを始めるよ♡\n"
+        f"{deploy_info}\n"
+        f"{command_info}"
+    )
+
     data = load_data()
     updated = 0
     checked_list = []
