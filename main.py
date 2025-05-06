@@ -137,12 +137,14 @@ async def check(ctx):
             result_lines.append(f"・{mid} ({ts}) → {state}")
 
         save_data(data)
+        result_lines.append("")
         result_lines.append(get_mirror_status())
         uptime = dt.utcnow() - startup_time
         hours, rem = divmod(uptime.total_seconds(), 3600)
         minutes, seconds = divmod(rem, 60)
         result_lines.append(f"💡 精疲時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒")
         result_lines.append(f"🚉 起動元: {socket.gethostname()}")
+        result_lines.append("")
         result_lines.append("📝 コマンド一覧")
         result_lines.append("!mirror <message_id> → 指定IDのメッセージをミラーするよ♡")
         result_lines.append("!check → 最新10件の削除チェックをするよ♡")
