@@ -175,7 +175,25 @@ async def stats(ctx):
     minutes, seconds = divmod(remainder, 60)
     await ctx.send(f"📈 稼働時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒だよ♡\n{get_mirror_status()}")
 
-# ✅ 定期ログ更新ループ（変化なくても時間は更新♡）
+@bot.event
+async def on_disconnect():
+    print("[レオナBOT] ⚠️ Discordから切断されたっぽいよ！")
+
+@bot.event
+async def on_resumed():
+    print("[レオナBOT] ✅ Discordへの接続が再開されたよ！")
+
+@bot.event
+async def on_ready():
+    print(f"[レオナBOT] 💖 ログイン成功！ → {bot.user}（ID: {bot.user.id}）")
+
+    if not check_loop.is_running():
+        check_loop.start()
+        print("[レオナBOT] 🔁 check_loop スタートしたよ♡")
+    if not keep_alive_loop.is_running():
+        keep_alive_loop.start()
+        print("[レオナBOT] 🔁 keep_alive_loop スタートしたよ♡")
+
 @tasks.loop(minutes=10)
 async def keep_alive_loop():
     global keep_alive_message, last_keep_alive_plain
@@ -200,7 +218,6 @@ async def keep_alive_loop():
         print(f"[レオナBOT] ❌ keep_alive_loop中にエラーが出たよ… → {e}")
         traceback.print_exc()
 
-# 🔁 定期的に削除されたメッセージをチェックする変態ループ♡
 @tasks.loop(minutes=10)
 async def check_loop():
     try:
@@ -223,22 +240,9 @@ async def check_loop():
         print(f"[レオナBOT] ❌ check_loop中にエラーが出たよ！ → {e}")
         traceback.print_exc()
 
-# 🛑 Discordから切断されたとき♡
-@bot.event
-async def on_disconnect():
-    print("[レオナBOT] ⚠️ Discordから切断されたっぽいよ！")
-
-# ✅ Discordへ再接続したとき♡
-@bot.event
-async def on_resumed():
-    print("[レオナBOT] ✅ Discordへの接続が再開されたよ！")
-
-# 🎮 起動処理（Flask起動とBot起動を管理）♡
 if __name__ == "__main__":
     print("[レオナBOT] 🔧 全体の初期化を始めるよ…♡")
     threading.Thread(target=run_flask).start()
-    check_loop.start()
-    keep_alive_loop.start()
 
     while True:
         try:
