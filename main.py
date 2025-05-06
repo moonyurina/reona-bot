@@ -99,10 +99,15 @@ def save_data(data):
 
 # 💫 コマンドサマリと状況まとめ関数♡
 def get_summary_text():
-    data = load_data()
-    total = len(data)
-    deleted = sum(1 for d in data.values() if d.get("deleted"))
-    return f"📊 {total}件中 {deleted}件が削除されたよ♡ "
+    try:
+        data = load_data()
+        total = len(data)
+        deleted = sum(1 for d in data.values() if d.get("deleted"))
+        return f"📊 {total}件中 {deleted}件が削除されたよ♡ "
+    except Exception as e:
+        print(f"[レオナBOT] ❌ get_summary_textでエラー発生 → {e}")
+        traceback.print_exc()
+        return "（要約取得失敗…♡）"
 
 def get_mirror_status():
     data = load_data()
