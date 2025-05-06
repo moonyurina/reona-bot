@@ -150,8 +150,12 @@ async def check(ctx):
             item = data[mid]
             if item.get("deleted"):
                 continue
+            source_channel_id = item.get("source_channel_id")
+            if not source_channel_id:
+                print(f"[レオナBOT] ⚠️ データに source_channel_id がないからスキップするね → {mid}")
+                continue
             try:
-                ch = await bot.fetch_channel(item["source_channel_id"])
+                ch = await bot.fetch_channel(source_channel_id)
                 await ch.fetch_message(int(mid))
             except discord.NotFound:
                 item["deleted"] = True
@@ -167,7 +171,6 @@ async def check(ctx):
     except Exception as e:
         await ctx.send(f"❌ チェック中にエラーが出たよ！ → {e}")
         traceback.print_exc()
-
 @bot.command()
 async def log(ctx):
     history = "\n".join(log_history[-5:]) or "（ログがまだないよ♡）"
