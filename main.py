@@ -116,30 +116,41 @@ def get_mirror_status():
     return f"📊 ミラー総数: {total}件 / 削除済み: {deleted}件"
 
 @bot.command()
-async def mirror(ctx, message_id: int):
+async def check(ctx):
     try:
-        source_channel_id = NORMAL_SOURCE_CHANNEL_ID if MODE == "NORMAL" else TEST_SOURCE_CHANNEL_ID
-        mirror_channel_id = NORMAL_MIRROR_CHANNEL_ID if MODE == "NORMAL" else TEST_MIRROR_CHANNEL_ID
-
-        source_channel = await bot.fetch_channel(source_channel_id)
-        mirror_channel = await bot.fetch_channel(mirror_channel_id)
-        msg = await source_channel.fetch_message(message_id)
-        mirror = await mirror_channel.send(f"🔁 {msg.author.display_name} のメッセージをミラーしたよ♡\n{msg.content}")
-
         data = load_data()
-        data[str(msg.id)] = {
-            "source_channel_id": msg.channel.id,
-            "mirror_channel_id": mirror.channel.id,
-            "mirror_message_id": mirror.id,
-            "timestamp": msg.created_at.isoformat(),
-            "deleted": False
-        }
-        save_data(data)
-        await ctx.send("✅ ミラー完了だよ♡")
-    except Exception as e:
-        await ctx.send(f"❌ ミラー失敗しちゃった… → {e}")
-        traceback.print_exc()
+        latest_ids = list(data.keys())[-10:]
+        result_lines = ["🔍 最新10件のミラー元メッセージの削除チェックを始めるよ♡"]
+        deleted_count = 0
 
+        for mid in latest_ids:
+            item = data.get(mid, {})
+            ts = dt.fromisoformat(item.get("timestamp", dt.utcnow().isoformat())).strftime("%Y-%m-%d")
+            state = "✅ 存在"
+            try:
+                ch = await bot.fetch_channel(item["source_channel_id"])
+                await ch.fetch_message(int(mid))
+            except:
+                item["deleted"] = True
+                deleted_count += 1
+                state = "🗑️ 削除済み"
+            result_lines.append(f"・{mid} ({ts}) → {state}")
+
+        save_data(data)
+        result_lines.append(get_mirror_status())
+        uptime = dt.utcnow() - startup_time
+        hours, rem = divmod(uptime.total_seconds(), 3600)
+        minutes, seconds = divmod(rem, 60)
+        result_lines.append(f"💡 精疲時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒")
+        result_lines.append(f"🚉 起動元: {socket.gethostname()}")
+        result_lines.append("📝 コマンド一覧")
+        result_lines.append("!mirror <message_id> → 指定IDのメッセージをミラーするよ♡")
+        result_lines.append("!check → 最新10件の削除チェックをするよ♡")
+
+        await ctx.send("\n".join(result_lines))
+    except Exception as e:
+        await ctx.send(f"❌ チェック中にエラーが出たよ！ → {e}")
+        traceback.print_exc()
 @bot.command()
 async def check(ctx):
     try:
