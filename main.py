@@ -59,7 +59,7 @@ def run_flask():
     print("[レオナBOT] 🌐 Flaskサーバーを起動したよ♡")
     try:
         app.run(host="0.0.0.0", port=8080)
-        except Exception as e:
+    except Exception as e:
         print(f"[レオナBOT] ❌ Flask起動中にエラーが発生したよ → {e}")
         traceback.print_exc()
 
