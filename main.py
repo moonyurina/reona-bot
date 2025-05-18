@@ -1,4 +1,4 @@
-        # 💦 ここはレオナの夏夏中柱♡ BOT起動の全コードよ♡
+# 💦 ここはレオナの夏夏中柱♡ BOT起動の全コードよ♡
 
 import discord
 from discord.ext import commands, tasks
@@ -19,34 +19,34 @@ if not TOKEN:
     print("[レオナBOT] ❌ DISCORD_TOKEN が設定されてないよ！")
     exit(1)
 
-# 🔥 本番チャンネル設定（濃厚ミラー♡）
+# 🔥 本番チャンネル設定
 NORMAL_SOURCE_CHANNEL_ID = 1350654751553093692
 NORMAL_MIRROR_CHANNEL_ID = 1362400364069912606
 
-# 💦 テストチャンネル設定（実験プレイ♡）
+# 💦 テストチャンネル設定
 TEST_SOURCE_CHANNEL_ID = 1142345422979993600
 TEST_MIRROR_CHANNEL_ID = 1362974839450894356
 
-# 📬 ログチャンネル（実況報告♡）
+# 📬 ログチャンネル
 LOG_CHANNEL_ID = 1362964804658003978
 
-# 💋 モード切換スイッチ（本番かテストか…どっちでイく？）
+# 💋 モード切換スイッチ
 MODE = "NORMAL"
 DATA_FILE = "data_test.json" if MODE == "TEST" else "data.json"
 
-# ⛏️ グローバル変数（起動時間とかログの管理♡）
+# ⛏️ グローバル変数
 startup_time = dt.utcnow()
 keep_alive_message = None
 last_keep_alive_plain = None
-log_history = []  # 📘 !log 用のログ履歴
+log_history = []
 
-# 📱 ディスコードの死体設定♡
+# 📱 ディスコード設定
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
 bot = commands.Bot(command_prefix=os.getenv("BOT_PREFIX", "!"), intents=intents)
 
-# 🌐 Flaskたんでお外にお知らせ♡
+# 🌐 Flaskサーバー
 app = Flask(__name__)
 
 @app.route('/')
@@ -54,7 +54,7 @@ def home():
     summary = get_summary_text()
     return f"レオナBOT生きてるよ♡\n{summary}シコリ目だお"
 
-# 🚀 Flaskちゃんを並列で立ち上げる♡
+# 🚀 Flask起動
 def run_flask():
     print("[レオナBOT] 🌐 Flaskサーバーを起動したよ♡")
     try:
@@ -63,8 +63,8 @@ def run_flask():
         print(f"[レオナBOT] ❌ Flask起動中にエラーが発生したよ → {e}")
         traceback.print_exc()
 
+# 📂 データ読み込み
 
-# 📂 保存データの読み込み♡
 def load_data():
     if os.path.exists(DATA_FILE):
         try:
@@ -76,7 +76,8 @@ def load_data():
             return {}
     return {}
 
-# 📂 保存時に30日超えの古い子は削除しちゃう♡
+# 📂 データ保存
+
 def save_data(data):
     old_data = load_data()
     if json.dumps(data, sort_keys=True) == json.dumps(old_data, sort_keys=True):
@@ -98,7 +99,8 @@ def save_data(data):
         print(f"[レオナBOT] ❌ データ保存に失敗したよ！ → {e}")
         traceback.print_exc()
 
-# 💫 コマンドサマリと状況まとめ関数♡
+# 💫 要約文
+
 def get_summary_text():
     try:
         data = load_data()
@@ -116,44 +118,45 @@ def get_mirror_status():
     deleted = sum(1 for d in data.values() if d.get("deleted"))
     return f"📊 ミラー総数: {total}件 / 削除済み: {deleted}件"
 
+# ✅ checkコマンド（1つだけに統合）
 @bot.command()
 async def check(ctx):
+    try:
+        data = load_data()
+        latest_ids = list(data.keys())[-10:]
+        result_lines = ["🔍 最新10件のミラー元メッセージの削除チェックを始めるよ♡"]
+        deleted_count = 0
+
+        for mid in latest_ids:
+            item = data.get(mid, {})
+            ts = dt.fromisoformat(item.get("timestamp", dt.utcnow().isoformat())).strftime("%Y-%m-%d")
+            state = "✅ 存在"
             try:
-                data = load_data()
-                latest_ids = list(data.keys())[-10:]
-                result_lines = ["🔍 最新10件のミラー元メッセージの削除チェックを始めるよ♡"]
-                deleted_count = 0
+                ch = await bot.fetch_channel(item["source_channel_id"])
+                await ch.fetch_message(int(mid))
+            except:
+                item["deleted"] = True
+                deleted_count += 1
+                state = "🗑️ 削除済み"
+            result_lines.append(f"・{mid} ({ts}) → {state}")
 
-                for mid in latest_ids:
-                    item = data.get(mid, {})
-                    ts = dt.fromisoformat(item.get("timestamp", dt.utcnow().isoformat())).strftime("%Y-%m-%d")
-                    state = "✅ 存在"
-                    try:
-                        ch = await bot.fetch_channel(item["source_channel_id"])
-                        await ch.fetch_message(int(mid))
-                    except:
-                        item["deleted"] = True
-                        deleted_count += 1
-                        state = "🗑️ 削除済み"
-                    result_lines.append(f"・{mid} ({ts}) → {state}")
+        save_data(data)
+        result_lines.append("")
+        result_lines.append(get_mirror_status())
+        uptime = dt.utcnow() - startup_time
+        hours, rem = divmod(uptime.total_seconds(), 3600)
+        minutes, seconds = divmod(rem, 60)
+        result_lines.append(f"💡 精疲時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒")
+        result_lines.append(f"🚉 起動元: {socket.gethostname()}")
+        result_lines.append("")
+        result_lines.append("📝 コマンド一覧")
+        result_lines.append("!mirror <message_id> → 指定IDのメッセージをミラーするよ♡")
+        result_lines.append("!check → 最新10件の削除チェックをするよ♡")
 
-                save_data(data)
-                result_lines.append("")
-                result_lines.append(get_mirror_status())
-                uptime = dt.utcnow() - startup_time
-                hours, rem = divmod(uptime.total_seconds(), 3600)
-                minutes, seconds = divmod(rem, 60)
-                result_lines.append(f"💡 精疲時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒")
-                result_lines.append(f"🚉 起動元: {socket.gethostname()}")
-                result_lines.append("")
-                result_lines.append("📝 コマンド一覧")
-                result_lines.append("!mirror <message_id> → 指定IDのメッセージをミラーするよ♡")
-                result_lines.append("!check → 最新10件の削除チェックをするよ♡")
-
-                await ctx.send("\n".join(result_lines))
-            except Exception as e:
-                await ctx.send(f"❌ チェック中にエラーが出たよ！ → {e}")
-                traceback.print_exc()
+        await ctx.send("\n".join(result_lines))
+    except Exception as e:
+        await ctx.send(f"❌ チェック中にエラーが出たよ！ → {e}")
+        traceback.print_exc()
 
 
 
