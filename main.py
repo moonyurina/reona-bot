@@ -55,6 +55,7 @@ def home():
     return f"レオナBOT生きてるよ♡\n{summary}シコリ目だお"
 
 # 🚀 Flask起動
+
 def run_flask():
     print("[レオナBOT] 🌐 Flaskサーバーを起動したよ♡")
     try:
@@ -118,7 +119,7 @@ def get_mirror_status():
     deleted = sum(1 for d in data.values() if d.get("deleted"))
     return f"📊 ミラー総数: {total}件 / 削除済み: {deleted}件"
 
-# ✅ checkコマンド（1つだけに統合）
+# ✅ checkコマンド（重複除去して1つに）
 @bot.command()
 async def check(ctx):
     try:
@@ -157,8 +158,6 @@ async def check(ctx):
     except Exception as e:
         await ctx.send(f"❌ チェック中にエラーが出たよ！ → {e}")
         traceback.print_exc()
-
-
 
 @bot.command()
 async def check(ctx):
