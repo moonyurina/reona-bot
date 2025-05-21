@@ -174,6 +174,40 @@ async def stats(ctx):
     hours, remainder = divmod(uptime.total_seconds(), 3600)
     minutes, seconds = divmod(remainder, 60)
     await ctx.send(f"📈 稼働時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒だよ♡\n{get_mirror_status()}")
+# ✅ mirrorコマンド
+@bot.command()
+async def mirror(ctx, message_id: int):
+    """指定したメッセージIDの内容をミラーチャンネルに転送するよ♡"""
+    try:
+        # チャンネルID自動判定（NORMAL/TEST）
+        if MODE == "TEST":
+            src_ch = bot.get_channel(TEST_SOURCE_CHANNEL_ID)
+            dst_ch = bot.get_channel(TEST_MIRROR_CHANNEL_ID)
+        else:
+            src_ch = bot.get_channel(NORMAL_SOURCE_CHANNEL_ID)
+            dst_ch = bot.get_channel(NORMAL_MIRROR_CHANNEL_ID)
+
+        if not src_ch or not dst_ch:
+            await ctx.send("チャンネルが見つからなかったよ…")
+            return
+
+        msg = await src_ch.fetch_message(message_id)
+        # ミラー先に送信
+        sent = await dst_ch.send(f"【ミラー】{msg.author.display_name}: {msg.content}")
+
+        # データ記録
+        data = load_data()
+        data[str(message_id)] = {
+            "source_channel_id": src_ch.id,
+            "mirror_channel_id": dst_ch.id,
+            "timestamp": msg.created_at.isoformat(),
+            "deleted": False
+        }
+        save_data(data)
+        await ctx.send("ミラー完了だよ♡")
+    except Exception as e:
+        await ctx.send(f"ミラー失敗… → {e}")
+        traceback.print_exc()
 
 # イベント
 @bot.event
