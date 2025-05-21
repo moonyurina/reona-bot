@@ -44,17 +44,21 @@ log_history = []
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
-bot = commands.Bot(command_prefix=os.getenv("BOT_PREFIX", "!"), intents=intents)
+bot = commands.Bot(command_prefix=os.getenv("BOT_PREFIX", "!"),
+                   intents=intents)
 
 # 🌐 Flaskサーバー
 app = Flask(__name__)
+
 
 @app.route('/')
 def home():
     summary = get_summary_text()
     return f"レオナBOT生きてるよ♡\n{summary}シコリ目だお"
 
+
 # 🚀 Flask起動
+
 
 def run_flask():
     print("[レオナBOT] 🌐 Flaskサーバーを起動したよ♡")
@@ -64,7 +68,9 @@ def run_flask():
         print(f"[レオナBOT] ❌ Flask起動中にエラーが発生したよ → {e}")
         traceback.print_exc()
 
+
 # 📂 データ読み込み
+
 
 def load_data():
     if os.path.exists(DATA_FILE):
@@ -77,17 +83,22 @@ def load_data():
             return {}
     return {}
 
+
 # 📂 データ保存
+
 
 def save_data(data):
     old_data = load_data()
-    if json.dumps(data, sort_keys=True) == json.dumps(old_data, sort_keys=True):
+    if json.dumps(data, sort_keys=True) == json.dumps(old_data,
+                                                      sort_keys=True):
         return
     now = dt.utcnow()
     before = len(data)
     filtered_data = {
-        mid: info for mid, info in data.items()
-        if (dt.fromisoformat(info.get("timestamp", now.isoformat())) + timedelta(days=30)) > now
+        mid: info
+        for mid, info in data.items()
+        if (dt.fromisoformat(info.get("timestamp", now.isoformat())) +
+            timedelta(days=30)) > now
     }
     after = len(filtered_data)
     removed = before - after
@@ -100,7 +111,9 @@ def save_data(data):
         print(f"[レオナBOT] ❌ データ保存に失敗したよ！ → {e}")
         traceback.print_exc()
 
+
 # 💡 要約文
+
 
 def get_summary_text():
     try:
@@ -113,11 +126,13 @@ def get_summary_text():
         traceback.print_exc()
         return "（要約取得失敗…♡）"
 
+
 def get_mirror_status():
     data = load_data()
     total = len(data)
     deleted = sum(1 for d in data.values() if d.get("deleted"))
     return f"📊 ミラー総数: {total}件 / 削除済み: {deleted}件"
+
 
 # ✅ checkコマンド
 @bot.command()
@@ -130,7 +145,9 @@ async def check(ctx):
 
         for mid in latest_ids:
             item = data.get(mid, {})
-            ts = dt.fromisoformat(item.get("timestamp", dt.utcnow().isoformat())).strftime("%Y-%m-%d")
+            ts = dt.fromisoformat(
+                item.get("timestamp",
+                         dt.utcnow().isoformat())).strftime("%Y-%m-%d")
             state = "✅ 存在"
             try:
                 ch = await bot.fetch_channel(item["source_channel_id"])
@@ -147,7 +164,8 @@ async def check(ctx):
         uptime = dt.utcnow() - startup_time
         hours, rem = divmod(uptime.total_seconds(), 3600)
         minutes, seconds = divmod(rem, 60)
-        result_lines.append(f"💡 精疲時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒")
+        result_lines.append(
+            f"💡 精疲時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒")
         result_lines.append(f"🚉 起動元: {socket.gethostname()}")
         result_lines.append("")
         result_lines.append("📝 コマンド一覧")
@@ -161,11 +179,13 @@ async def check(ctx):
         await ctx.send(f"❌ チェック中にエラーが出たよ！ → {e}")
         traceback.print_exc()
 
+
 # ✅ logコマンド
 @bot.command()
 async def log(ctx):
     history = "\n".join(log_history[-5:]) or "（ログがまだないよ♡）"
     await ctx.send(f"📝 最新のログ履歴だよ♡\n{history}")
+
 
 # ✅ statsコマンド
 @bot.command()
@@ -173,8 +193,9 @@ async def stats(ctx):
     uptime = dt.utcnow() - startup_time
     hours, remainder = divmod(uptime.total_seconds(), 3600)
     minutes, seconds = divmod(remainder, 60)
-    await ctx.send(f"📈 稼働時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒だよ♡\n{get_mirror_status()}")
-
+    await ctx.send(
+        f"📈 稼働時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒だよ♡\n{get_mirror_status()}"
+    )
 # ✅ mirrorコマンド
 @bot.command()
 async def mirror(ctx, message_id: int):
@@ -204,21 +225,22 @@ async def mirror(ctx, message_id: int):
         # 消滅日（30日後）
         created = msg.created_at
         if created.tzinfo is None:
-            # 必ずoffset-awareに
             created = created.replace(tzinfo=datetime.timezone.utc)
         limit = created + timedelta(days=30)
-        limit_jst = limit.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+        limit_jst = limit.astimezone(
+            datetime.timezone(datetime.timedelta(hours=9)))
         limit_str = limit_jst.strftime("%Y-%m-%d %H:%M")
 
         # 本文・画像・消滅日コメントを一つのメッセージで
-        mirror_text = f"#Only30Days\n🗓️ This image will self-destruct on {limit_str}" if msg.content else f"#Only30Days\n🗓️ This image will self-destruct on {limit_str}"
-        await dst_ch.send(mirror_text, files=files if files else None)
+        mirror_text = f"#Only30Days\n🗓️ This image will self-destruct on {limit_str}"
+        sent = await dst_ch.send(mirror_text, files=files if files else None)
 
-        # データ記録
+        # データ記録（ミラー先IDも保存）
         data = load_data()
         data[str(message_id)] = {
             "source_channel_id": src_ch.id,
             "mirror_channel_id": dst_ch.id,
+            "mirror_message_id": sent.id,         # ← 追加
             "timestamp": msg.created_at.isoformat(),
             "deleted": False
         }
@@ -227,14 +249,19 @@ async def mirror(ctx, message_id: int):
     except Exception as e:
         await ctx.send(f"ミラー失敗… → {e}")
         traceback.print_exc()
+
+
+
 # イベント
 @bot.event
 async def on_disconnect():
     print("[レオナBOT] ⚠️ Discordから切断されたっぽいよ！")
 
+
 @bot.event
 async def on_resumed():
     print("[レオナBOT] ✅ Discordへの接続が再開されたよ！")
+
 
 @bot.event
 async def on_ready():
@@ -243,6 +270,7 @@ async def on_ready():
         check_loop.start()
     if not keep_alive_loop.is_running():
         keep_alive_loop.start()
+
 
 # 定期タスク: keep_alive_loop
 @tasks.loop(minutes=10)
@@ -269,28 +297,64 @@ async def keep_alive_loop():
         print(f"[レオナBOT] ❌ keep_alive_loop中にエラーが出たよ… → {e}")
         traceback.print_exc()
 
+
 # 定期タスク: check_loop
+from dateutil import parser as dtparser
+import re
+
 @tasks.loop(minutes=10)
 async def check_loop():
     try:
         data = load_data()
-        latest_ids = list(data.keys())[-10:]
         changed = False
-        for mid in latest_ids:
-            item = data[mid]
-            if item.get("deleted"):
+        now = dt.utcnow().replace(tzinfo=datetime.timezone.utc)
+
+        # ミラー先のチャンネル取得
+        if MODE == "TEST":
+            dst_ch = bot.get_channel(TEST_MIRROR_CHANNEL_ID)
+        else:
+            dst_ch = bot.get_channel(NORMAL_MIRROR_CHANNEL_ID)
+
+        # dataに記録された最新10件だけチェック
+        for k, v in list(data.items())[-10:]:
+            mirror_msg_id = v.get("mirror_message_id")
+            ts_str = v.get("timestamp")
+            if not mirror_msg_id or not ts_str:
                 continue
-            try:
-                ch = await bot.fetch_channel(item["source_channel_id"])
-                await ch.fetch_message(int(mid))
-            except discord.NotFound:
-                item["deleted"] = True
+            expire = dtparser.parse(ts_str)
+            if expire.tzinfo is None:
+                expire = expire.replace(tzinfo=datetime.timezone.utc)
+            limit = expire + timedelta(days=30)
+            if now > limit and not v.get("deleted"):
+                # 画像ミラーメッセージ削除
+                try:
+                    img_msg = await dst_ch.fetch_message(mirror_msg_id)
+                    await img_msg.delete()
+                    print(f"[レオナBOT] 🗑️ 画像付きミラーも自動削除: {mirror_msg_id}")
+                except Exception as e:
+                    print(f"[レオナBOT] ⚠️ 画像ミラー削除失敗: {e}")
+                # #Only30Daysコメントも削除（該当するものをhistoryから探す）
+                async for msg in dst_ch.history(limit=10, after=expire):
+                    if msg.author.bot and "#Only30Days" in msg.content:
+                        m = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2})", msg.content)
+                        if m:
+                            limit_comment = dtparser.parse(m.group(1))
+                            # 消滅日が一致したら削除
+                            if abs((limit_comment - limit).total_seconds()) < 180:
+                                try:
+                                    await msg.delete()
+                                    print(f"[レオナBOT] 🗑️ #Only30Daysコメントも自動削除: {msg.id}")
+                                except Exception as e:
+                                    print(f"[レオナBOT] ⚠️ コメント削除失敗: {e}")
+                v["deleted"] = True
                 changed = True
+
         if changed:
             save_data(data)
     except Exception as e:
         print(f"[レオナBOT] ❌ check_loop中にエラーが出たよ！ → {e}")
         traceback.print_exc()
+
 
 # 起動
 if __name__ == "__main__":
