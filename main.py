@@ -119,7 +119,7 @@ def get_mirror_status():
     deleted = sum(1 for d in data.values() if d.get("deleted"))
     return f"📊 ミラー総数: {total}件 / 削除済み: {deleted}件"
 
-# ✅ checkコマンド（重複除去して1つに）
+# ✅ checkコマンド
 @bot.command()
 async def check(ctx):
     try:
@@ -174,7 +174,8 @@ async def stats(ctx):
     hours, remainder = divmod(uptime.total_seconds(), 3600)
     minutes, seconds = divmod(remainder, 60)
     await ctx.send(f"📈 稼働時間: {int(hours)}時間 {int(minutes)}分 {int(seconds)}秒だよ♡\n{get_mirror_status()}")
-    
+
+# ✅ mirrorコマンド
 @bot.command()
 async def mirror(ctx, message_id: int):
     """指定したメッセージIDの内容と画像をミラーし、消滅日もコメントで追加"""
@@ -193,7 +194,7 @@ async def mirror(ctx, message_id: int):
 
         msg = await src_ch.fetch_message(message_id)
 
-        # 画像・添付ファイルURLを取得
+        # 画像・添付ファイル
         files = []
         if msg.attachments:
             for a in msg.attachments:
@@ -201,16 +202,17 @@ async def mirror(ctx, message_id: int):
                 files.append(fp)
 
         # 消滅日（30日後）
-        created = msg.created_at.replace(tzinfo=datetime.timezone.utc)
+        created = msg.created_at
+        if created.tzinfo is None:
+            # 必ずoffset-awareに
+            created = created.replace(tzinfo=datetime.timezone.utc)
         limit = created + timedelta(days=30)
-        limit_str = limit.astimezone(datetime.timezone(datetime.timedelta(hours=9))).strftime("%Y-%m-%d %H:%M")
+        limit_jst = limit.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+        limit_str = limit_jst.strftime("%Y-%m-%d %H:%M")
 
-        # 本文ミラー
-        mirror_text = f"【ミラー】{msg.author.display_name}: {msg.content}" if msg.content else f"【ミラー】{msg.author.display_name}"
-        sent = await dst_ch.send(mirror_text, files=files if files else None)
-
-        # 消滅日アナウンス
-        await dst_ch.send(f"#Only30Days\n🗓️ This image will self-destruct on {limit_str}")
+        # 本文・画像・消滅日コメントを一つのメッセージで
+        mirror_text = f"#Only30Days\n🗓️ This image will self-destruct on {limit_str}" if msg.content else f"#Only30Days\n🗓️ This image will self-destruct on {limit_str}"
+        await dst_ch.send(mirror_text, files=files if files else None)
 
         # データ記録
         data = load_data()
@@ -225,7 +227,6 @@ async def mirror(ctx, message_id: int):
     except Exception as e:
         await ctx.send(f"ミラー失敗… → {e}")
         traceback.print_exc()
-
 # イベント
 @bot.event
 async def on_disconnect():
